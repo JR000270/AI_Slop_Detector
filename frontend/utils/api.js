@@ -98,6 +98,30 @@ async function callDirectApi(url, type, apiKey) {
   return normalizeResult(json.report ?? json, 'direct');
 }
 
+/**
+ * Send a video URL (or data URL for uploaded files) to the backend for
+ * content analysis. Returns a plain-text analysis string from the backend.
+ *
+ * @param {string} url   HTTP URL or data URL of the video
+ * @param {string} apiKey
+ * @param {string} endpoint  Base OpenClaw endpoint
+ * @returns {Promise<string>}  Analysis text
+ */
+async function analyzeVideoContent(url, apiKey, endpoint = DEFAULT_ENDPOINT) {
+  const videoEndpoint = endpoint.replace(/\/api\/truthlens$/, '/api/truthlens/video');
+  const res = await fetchWithTimeout(videoEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, apiKey }),
+  }, 60000); // generous timeout — video analysis takes longer
+
+  if (!res.ok) throw new Error(`Server error ${res.status}`);
+  const json = await res.json();
+  const text = json.analysis ?? json.text ?? json.result ?? null;
+  if (!text) throw new Error('No analysis returned from server.');
+  return text;
+}
+
 /** Ping OpenClaw health endpoint. Returns true if reachable. */
 async function checkOpenClawConnection(endpoint = DEFAULT_ENDPOINT) {
   try {

@@ -84,11 +84,11 @@ async function handle(msg, sender) {
           sendToTab(tabId, { action: 'addBadge', url: item.url, ...result });
           done++;
           // Notify popup of progress
-          chrome.runtime.sendMessage({ action: 'batchProgress', done, total: items.length }).catch(() => {});
+          chrome.runtime.sendMessage({ action: 'batchProgress', done, total: items.length }).catch(() => { });
         } catch {
           sendToTab(tabId, { action: 'badgeError', url: item.url, message: 'Failed' });
           done++;
-          chrome.runtime.sendMessage({ action: 'batchProgress', done, total: items.length }).catch(() => {});
+          chrome.runtime.sendMessage({ action: 'batchProgress', done, total: items.length }).catch(() => { });
         }
       }
       return { ok: true, total: items.length };
@@ -109,6 +109,13 @@ async function handle(msg, sender) {
         }
       })();
       return { ok: true };
+    }
+
+    case 'analyzeVideoContent': {
+      const { url } = msg;
+      const settings = await getSettings();
+      const text = await analyzeVideoContent(url, settings.apiKey, settings.endpoint);
+      return { ok: true, text };
     }
 
     case 'getHistory':
@@ -194,7 +201,7 @@ async function getTabImages(tabId, sensitivity) {
 
 function sendToTab(tabId, msg) {
   if (!tabId) return;
-  chrome.tabs.sendMessage(tabId, msg).catch(() => {});
+  chrome.tabs.sendMessage(tabId, msg).catch(() => { });
 }
 
 function friendlyError(err) {

@@ -8,7 +8,7 @@
 const $ = id => document.getElementById(id);
 
 const tabs           = document.querySelectorAll('.tab');
-const panels         = { scan: $('tab-scan'), history: $('tab-history'), settings: $('tab-settings') };
+const panels         = { scan: $('tab-scan'), video: $('tab-video'), history: $('tab-history'), settings: $('tab-settings') };
 
 // Scan tab
 const stateEmpty     = $('state-empty');
@@ -26,13 +26,29 @@ const resultPreviewImg = $('result-preview-img');
 const resultPreviewVid = $('result-preview-vid');
 const resultUrl      = $('result-url');
 const resultSource   = $('result-source');
+const btnClearResult = $('btn-clear-result');
 const btnPick        = $('btn-pick');
+const btnUpload      = $('btn-upload');
+const fileInput      = $('file-input');
 const btnBatch       = $('btn-batch');
 const batchProgress  = $('batch-progress');
 const progressBar    = $('progress-bar');
 const progressLabel  = $('progress-label');
 const toggleProactive = $('toggle-proactive');
 const sensitivitySel = $('sensitivity-select');
+
+// Video tab
+const videoUrlInput      = $('video-url-input');
+const btnUploadVideo     = $('btn-upload-video');
+const videoFileInput     = $('video-file-input');
+const btnAnalyzeVideo    = $('btn-analyze-video');
+const videoStateEmpty    = $('video-state-empty');
+const videoStateLoading  = $('video-state-loading');
+const videoStateResult   = $('video-state-result');
+const videoStateError    = $('video-state-error');
+const videoAnalysisText  = $('video-analysis-text');
+const videoResultSource  = $('video-result-source');
+const videoErrorText     = $('video-error-text');
 
 // History tab
 const historyList    = $('history-list');
@@ -166,7 +182,7 @@ function showResult({ score, label, cls, url, type, source }) {
   gaugeArc.style.strokeDashoffset = offset;
 
   const colors = { green: '#16A34A', yellow: '#D97706', red: '#DC2626' };
-  gaugeArc.style.stroke = colors[cls] || '#2563EB';
+  gaugeArc.style.stroke = colors[cls] || '#8C5E4A';
 
   gaugePct.textContent = score + '%';
   gaugeLabel.textContent = label;
@@ -176,6 +192,27 @@ function showResult({ score, label, cls, url, type, source }) {
   resultUrl.title        = url || '';
   resultSource.textContent = source ? `via ${source}` : '';
 }
+
+// ── Clear result ──────────────────────────────────────────────────────────
+
+btnClearResult.addEventListener('click', async () => {
+  await chrome.storage.local.remove('tl_last_result');
+  showState('empty');
+});
+
+// ── Upload from device ────────────────────────────────────────────────────
+
+btnUpload.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  fileInput.value = ''; // reset so same file can be re-selected
+
+  const type = file.type.startsWith('video/') ? 'video' : 'image';
+  const url = URL.createObjectURL(file);
+  showPreviewOnly({ url, type });
+});
 
 // ── Single pick ───────────────────────────────────────────────────────────
 
@@ -245,6 +282,66 @@ toggleProactive.addEventListener('click', async () => {
 
 sensitivitySel.addEventListener('change', () => {
   msg({ action: 'saveSettings', settings: { sensitivity: sensitivitySel.value } });
+});
+
+// ── Video Check ───────────────────────────────────────────────────────────
+
+let pendingVideoUrl = '';
+
+function setVideoState(name) {
+  videoStateEmpty.hidden   = name !== 'empty';
+  videoStateLoading.hidden = name !== 'loading';
+  videoStateResult.hidden  = name !== 'result';
+  videoStateError.hidden   = name !== 'error';
+}
+
+videoUrlInput.addEventListener('input', () => {
+  pendingVideoUrl = videoUrlInput.value.trim();
+  btnAnalyzeVideo.disabled = !pendingVideoUrl;
+});
+
+btnUploadVideo.addEventListener('click', () => videoFileInput.click());
+
+videoFileInput.addEventListener('change', () => {
+  const file = videoFileInput.files[0];
+  if (!file) return;
+  videoFileInput.value = '';
+
+  if (file.size > 50 * 1024 * 1024) {
+    setVideoState('error');
+    videoErrorText.textContent = 'File too large (max 50 MB). Please use a URL instead.';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    pendingVideoUrl = reader.result; // data URL
+    videoUrlInput.value = '';
+    videoUrlInput.placeholder = file.name;
+    btnAnalyzeVideo.disabled = false;
+  };
+  reader.readAsDataURL(file);
+});
+
+btnAnalyzeVideo.addEventListener('click', async () => {
+  if (!pendingVideoUrl) return;
+
+  btnAnalyzeVideo.disabled = true;
+  setVideoState('loading');
+
+  const { ok, text, error } = await msg({ action: 'analyzeVideoContent', url: pendingVideoUrl });
+
+  btnAnalyzeVideo.disabled = false;
+
+  if (error || !ok) {
+    setVideoState('error');
+    videoErrorText.textContent = error || 'Analysis failed. Check your connection and settings.';
+    return;
+  }
+
+  videoAnalysisText.textContent = text;
+  videoResultSource.textContent = pendingVideoUrl.startsWith('data:') ? 'Source: uploaded file' : `Source: ${truncate(pendingVideoUrl, 48)}`;
+  setVideoState('result');
 });
 
 // ── History ───────────────────────────────────────────────────────────────
