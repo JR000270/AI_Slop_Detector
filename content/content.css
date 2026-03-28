@@ -1,0 +1,164 @@
+/* ── Selection mode ───────────────────────────────────────────────────────── */
+
+body.tl-selecting,
+body.tl-selecting * {
+  cursor: crosshair !important;
+}
+
+/* Hover ring on pickable media */
+img.tl-hover,
+video.tl-hover {
+  outline: 3px solid #2563EB !important;
+  outline-offset: 2px;
+  transition: outline 0.1s;
+}
+
+/* Toast instruction bar */
+#tl-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  background: #1e293b;
+  color: #f1f5f9;
+  font: 500 12px/1.4 system-ui, sans-serif;
+  padding: 9px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ── Badge ────────────────────────────────────────────────────────────────── */
+
+.tl-badge {
+  position: absolute;
+  transform: translateX(-100%);
+  z-index: 2147483646;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font: 600 11px/1 system-ui, sans-serif;
+  color: #fff;
+  background: rgba(30, 41, 59, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  opacity: 0.75;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s, transform 0.15s;
+  pointer-events: auto;
+}
+
+.tl-badge:hover {
+  opacity: 1;
+  transform: translateX(-100%) scale(1.05);
+}
+
+.tl-badge--green  { background: rgba(22, 163, 74, 0.88); }
+.tl-badge--yellow { background: rgba(217, 119, 6, 0.88); }
+.tl-badge--red    { background: rgba(220, 38, 38, 0.88); }
+.tl-badge--error  { background: rgba(100, 100, 100, 0.88); font-size: 13px; }
+.tl-badge--scanning { background: rgba(37, 99, 235, 0.88); }
+
+/* Spinner inside badge */
+.tl-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: tl-spin 0.65s linear infinite;
+}
+
+@keyframes tl-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Inline detail card ────────────────────────────────────────────────────── */
+
+.tl-detail {
+  position: absolute;
+  z-index: 2147483647;
+  width: 200px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  padding: 14px;
+  font: 13px/1.4 system-ui, sans-serif;
+  color: #1e293b;
+  animation: tl-fadein 0.15s ease;
+}
+
+@keyframes tl-fadein {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tl-detail__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.tl-detail__close:hover { color: #475569; background: #f1f5f9; }
+
+.tl-detail__logo {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.tl-detail__gauge {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+/* Gauge arc color inherits from detail variant */
+.tl-detail--green  .tl-gauge-arc { color: #16a34a; }
+.tl-detail--yellow .tl-gauge-arc { color: #d97706; }
+.tl-detail--red    .tl-gauge-arc { color: #dc2626; }
+
+.tl-detail__pct {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.tl-detail__label {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.tl-detail--green  .tl-detail__label { color: #16a34a; }
+.tl-detail--yellow .tl-detail__label { color: #d97706; }
+.tl-detail--red    .tl-detail__label { color: #dc2626; }
+
+.tl-detail__url {
+  font-size: 10px;
+  color: #94a3b8;
+  word-break: break-all;
+  text-align: center;
+}
