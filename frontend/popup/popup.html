@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TruthLens</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header__logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="10" cy="10" r="9" stroke="#2563EB" stroke-width="2"/>
+        <circle cx="10" cy="10" r="4" fill="#2563EB"/>
+        <line x1="16" y1="16" x2="18.5" y2="18.5" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      TruthLens
+    </div>
+    <span id="connection-dot" class="dot dot--unknown" title="OpenClaw status unknown"></span>
+  </header>
+
+  <!-- ── Tab bar ────────────────────────────────────────────────────────── -->
+  <nav class="tabs" role="tablist">
+    <button class="tab tab--active" data-tab="scan"     role="tab" aria-selected="true">Scan</button>
+    <button class="tab"             data-tab="history"  role="tab">History</button>
+    <button class="tab"             data-tab="settings" role="tab">Settings</button>
+  </nav>
+
+  <!-- ── Scan tab ───────────────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-scan" role="tabpanel">
+
+    <!-- Result area -->
+    <div id="result-area">
+
+      <!-- Empty state -->
+      <div id="state-empty" class="state">
+        <div class="empty-icon" aria-hidden="true">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <circle cx="16" cy="16" r="12" stroke="#CBD5E1" stroke-width="2.5"/>
+            <circle cx="16" cy="16" r="5" fill="#CBD5E1"/>
+            <line x1="25" y1="25" x2="30" y2="30" stroke="#CBD5E1" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p class="empty-title">Nothing scanned yet</p>
+        <p class="empty-sub">Right-click an image or video and choose<br><em>Check with TruthLens</em></p>
+      </div>
+
+      <!-- Loading / shimmer state -->
+      <div id="state-loading" class="state" hidden>
+        <div class="shimmer shimmer--gauge"></div>
+        <div class="shimmer shimmer--label"></div>
+        <div class="shimmer shimmer--url"></div>
+      </div>
+
+      <!-- Preview-only state (no scan result yet) — TODO: remove when scanning is implemented -->
+      <div id="state-preview" class="state" hidden>
+        <div class="result-preview-wrap">
+          <img id="preview-only-img" class="result-preview" alt="Selected image" hidden />
+          <video id="preview-only-vid" class="result-preview" muted playsinline hidden></video>
+        </div>
+        <p id="preview-only-url" class="result-url"></p>
+        <p class="preview-only-note">Scanning not yet implemented</p>
+      </div>
+
+      <!-- Result state -->
+      <div id="state-result" class="state" hidden>
+        <!-- Thumbnail preview -->
+        <div class="result-preview-wrap">
+          <img id="result-preview-img" class="result-preview" alt="Scanned image" hidden />
+          <video id="result-preview-vid" class="result-preview" muted playsinline hidden></video>
+        </div>
+        <!-- Gauge -->
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 200 110" width="200" height="110" aria-hidden="true">
+            <!-- Track -->
+            <path d="M20,100 A80,80 0 0,1 180,100"
+                  fill="none" stroke="#E2E8F0" stroke-width="16" stroke-linecap="round"/>
+            <!-- Value arc – stroke-dashoffset set by JS -->
+            <path id="gauge-arc"
+                  d="M20,100 A80,80 0 0,1 180,100"
+                  fill="none" stroke="#2563EB" stroke-width="16" stroke-linecap="round"
+                  stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+          </svg>
+          <div class="gauge-pct-wrap">
+            <span id="gauge-pct" class="gauge-pct">--%</span>
+            <span id="gauge-label" class="gauge-label"></span>
+          </div>
+        </div>
+        <p id="result-url" class="result-url"></p>
+        <p id="result-source" class="result-source"></p>
+      </div>
+
+    </div><!-- /result-area -->
+
+    <hr class="divider" />
+
+    <!-- Single pick -->
+    <div class="section">
+      <button id="btn-pick" class="btn btn--primary btn--full">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="6" y1="2" x2="6" y2="0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="6" y1="12" x2="6" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2" y1="6" x2="0" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="12" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Pick an image or video
+      </button>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Batch scan -->
+    <div class="section">
+      <button id="btn-batch" class="btn btn--secondary btn--full">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        Scan All Images on Page
+      </button>
+      <!-- Batch progress (hidden until running) -->
+      <div id="batch-progress" hidden>
+        <div class="progress-bar-wrap">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p id="progress-label" class="progress-label">Scanning…</p>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Proactive scan -->
+    <div class="section">
+      <div class="row row--between">
+        <label class="label" for="toggle-proactive">Auto-scan on page load</label>
+        <button id="toggle-proactive" class="toggle" role="switch" aria-checked="false">
+          <span class="toggle__thumb"></span>
+        </button>
+      </div>
+      <div class="row row--between" id="sensitivity-row">
+        <label class="label label--muted" for="sensitivity-select">Sensitivity</label>
+        <select id="sensitivity-select" class="select">
+          <option value="high">High</option>
+          <option value="medium" selected>Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── History tab ─────────────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-history" role="tabpanel" hidden>
+    <div id="history-empty" class="state" hidden>
+      <p class="empty-title">No history yet</p>
+      <p class="empty-sub">Scanned items will appear here.</p>
+    </div>
+    <ul id="history-list" class="history-list" aria-label="Scan history"></ul>
+  </section>
+
+  <!-- ── Settings tab ────────────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-settings" role="tabpanel" hidden>
+
+    <div class="section">
+      <label class="label" for="api-key-input">AI-or-Not API Key</label>
+      <div class="input-row">
+        <input id="api-key-input" class="input" type="password"
+               placeholder="sk-…" autocomplete="off" spellcheck="false" />
+        <button id="btn-save-key" class="btn btn--secondary">Save</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <label class="label" for="endpoint-input">OpenClaw Endpoint</label>
+      <div class="input-row">
+        <input id="endpoint-input" class="input" type="url"
+               placeholder="http://localhost:3000/api/truthlens" />
+        <button id="btn-save-endpoint" class="btn btn--secondary">Save</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="row row--between row--vcenter">
+        <span class="label">OpenClaw Status</span>
+        <div class="status-chip" id="status-chip">
+          <span id="status-dot" class="dot dot--unknown"></span>
+          <span id="status-text">Checking…</span>
+        </div>
+      </div>
+      <button id="btn-recheck" class="btn btn--ghost btn--sm">Re-check connection</button>
+    </div>
+
+    <div class="section">
+      <div class="row row--between row--vcenter">
+        <span class="label">Cache</span>
+        <button id="btn-clear-cache" class="btn btn--ghost btn--sm btn--danger">Clear Cache</button>
+      </div>
+      <p id="cache-feedback" class="feedback" hidden></p>
+    </div>
+
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>
