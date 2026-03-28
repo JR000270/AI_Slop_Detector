@@ -2,8 +2,7 @@ import os
 from dotenv import load_dotenv
 
 def get_ai_or_not_api_key():
-    load_dotenv("apikeys.env")
-    dotenv_path = os.path.join(os.path.dirname(__file__), "apikeys.env")
+    dotenv_path = os.path.join(os.getcwd(), "apikeys.env")
     loaded = load_dotenv(dotenv_path)
     print(f"Loaded: {loaded}, Path: {dotenv_path}")
     return os.getenv("AIORNOT_KEY")
