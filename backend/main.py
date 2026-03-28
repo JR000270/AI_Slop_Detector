@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File
 import os
 import httpx
 from helper import get_ai_or_not_api_key
+from gemini_functions import generate_text, describe_image
 import asyncio
 
 app = FastAPI()
