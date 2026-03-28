@@ -1,4 +1,2 @@
-
-backend/api_keys.env
 backend/apikeys.env
 backend/__pycache__/*

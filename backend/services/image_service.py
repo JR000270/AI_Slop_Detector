@@ -5,7 +5,11 @@ from fastapi import HTTPException
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from helper import get_ai_or_not_api_key
+from helper import get_ai_or_not_api_key, get_gemini_api_key
+from PIL import Image
+from google import genai
+from google.genai import types
+
 
 API_KEY = get_ai_or_not_api_key()
 IMAGE_ENDPOINT = "https://api.aiornot.com/v2/image/sync"
@@ -47,6 +51,36 @@ async def analyze_from_url(url: str):
         )
         return response.json()
 
+
+gemini_client = genai.Client(api_key=get_gemini_api_key())
+
+# Add these two new functions
+async def analyze_image_with_gemini(image_input) -> str:
+    if isinstance(image_input, str):
+        image = Image.open(image_input)
+    else:
+        image = image_input
+
+    response = gemini_client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[
+            "In 30 words or less explain if this image is AI generated or not and why.",
+            image
+        ]
+    )
+    return response.text
+
+async def analyze_youtube_with_gemini(url: str) -> str:
+    response = gemini_client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=types.Content(
+            parts=[
+                types.Part(file_data=types.FileData(file_uri=url)),
+                types.Part(text="Analyze this video and determine if it was made with or by AI. Look for signs like unnatural movements, inconsistent lighting, strange audio, digital artifacts, or anything else that suggests AI generation. Give a clear verdict and explain your reasoning.")
+            ]
+        )
+    )
+    return response.text
 
 if __name__ == "__main__":
     import asyncio
