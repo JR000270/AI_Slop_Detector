@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import os
 import httpx
 from helper import get_ai_or_not_api_key
+from gemini_functions import generate_text, describe_image
 
 app = FastAPI()
 API_KEY = get_ai_or_not_api_key()
@@ -20,3 +21,11 @@ async def send_image(image):
                 headers={"Authorization": f"Bearer {API_KEY}"},
                 files={"image": f}
             )
+
+if __name__ == "__main__":    
+    # Example usage
+    #prompt = "hello!"
+    #generate_text(prompt)
+    image_path = "test_image.jpg"
+    description = describe_image(image_path)
+    print(description)
