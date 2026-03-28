@@ -3,21 +3,21 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --primary:       #2563EB;
-  --primary-hover: #1D4ED8;
-  --primary-light: #EFF6FF;
-  --primary-ring:  rgba(37, 99, 235, 0.25);
+  --primary:       #8C5E4A;
+  --primary-hover: #7A5040;
+  --primary-light: #F5EFEC;
+  --primary-ring:  rgba(140, 94, 74, 0.22);
 
-  --slate:         #1E293B;
-  --slate-mid:     #475569;
-  --slate-muted:   #94A3B8;
-  --border:        #E2E8F0;
-  --surface:       #F8FAFC;
+  --slate:         #1C1917;
+  --slate-mid:     #57534E;
+  --slate-muted:   #A8A29E;
+  --border:        #E7E2DF;
+  --surface:       #FAF8F7;
   --bg:            #FFFFFF;
 
   --green:         #16A34A;
   --green-bg:      #F0FDF4;
-  --yellow:        #D97706;
+  --yellow:        #B45309;
   --yellow-bg:     #FFFBEB;
   --red:           #DC2626;
   --red-bg:        #FEF2F2;
@@ -26,22 +26,24 @@
   --radius:        8px;
   --radius-lg:     12px;
 
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
-  --shadow:    0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow:    0 4px 12px rgba(0,0,0,0.09), 0 2px 4px rgba(0,0,0,0.05);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary-light: #1e3a5f;
-    --slate:         #F1F5F9;
-    --slate-mid:     #CBD5E1;
-    --slate-muted:   #64748B;
-    --border:        #334155;
-    --surface:       #1E293B;
-    --bg:            #0F172A;
-    --green-bg:      #14291f;
-    --yellow-bg:     #2a1f0e;
-    --red-bg:        #2a0f0f;
+    --primary:       #B07860;
+    --primary-hover: #C08870;
+    --primary-light: #2A1E1A;
+    --slate:         #F5F0EE;
+    --slate-mid:     #C7BDB9;
+    --slate-muted:   #7C6F6A;
+    --border:        #2E2522;
+    --surface:       #1C1512;
+    --bg:            #120E0C;
+    --green-bg:      #0D2318;
+    --yellow-bg:     #231A08;
+    --red-bg:        #230E0E;
   }
 }
 
@@ -205,6 +207,8 @@ body {
 .result-preview {
   max-width: 100%;
   max-height: 130px;
+  width: auto;
+  height: auto;
   object-fit: contain;
   display: block;
 }
@@ -489,3 +493,40 @@ body {
 .history-badge--green  { background: var(--green-bg);  color: var(--green); }
 .history-badge--yellow { background: var(--yellow-bg); color: var(--yellow); }
 .history-badge--red    { background: var(--red-bg);    color: var(--red); }
+
+/* ── Video Check tab ─────────────────────────────────────────────────────── */
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  color: var(--slate-muted);
+  font-size: 11px;
+}
+.or-divider::before,
+.or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.video-analysis-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  text-align: left;
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.video-analysis-text {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--slate-mid);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
