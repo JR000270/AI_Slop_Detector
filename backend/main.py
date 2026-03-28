@@ -2,12 +2,12 @@ from fastapi import FastAPI
 import os
 import httpx
 from helper import get_ai_or_not_api_key
-from gemini_functions import generate_text, describe_image
+from gemini_functions import generate_text, describe_image, get_available_models
 import asyncio
 
 app = FastAPI()
 
-IMAGE =  "./images/Ballerina-Cappuccina.webp"
+#IMAGE =  "./images/Ballerina-Cappuccina.webp"
 API_KEY = get_ai_or_not_api_key()
 
 IMAGE_ENDPOINT = "https://api.aiornot.com/v2/image/sync"
@@ -32,11 +32,11 @@ if __name__ == "__main__":
     image_path = "test_image.jpg"
     description = describe_image(image_path)
     print(description)
-            print("RESPONSE TYPE:", type(response))
-            print("RESPONSE JSON:", response.json())
-            return response.json()
-        
-if __name__ == "__main__":
-    result = asyncio.run(send_image(IMAGE))
+    #get_available_models()
     
-    print(result)
+    #print("RESPONSE TYPE:", type(response))
+    #print("RESPONSE JSON:", response.json())
+    #result = asyncio.run(send_image(IMAGE))
+    
+    #print(result)
+    #return response.json()
