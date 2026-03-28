@@ -1,18 +1,14 @@
-from fastapi import FastAPI, UploadFile, File
-import os
-import httpx
-from helper import get_ai_or_not_api_key
-from gemini_functions import generate_text, describe_image, get_available_models
-import asyncio
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routes import image
 
 app = FastAPI()
-app.include_router(image.router)
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello, World"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    
-    #print(result)
-    #return response.json()
