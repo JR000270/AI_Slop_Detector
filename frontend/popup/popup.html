@@ -1,31 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TruthLens</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
+
 <body>
 
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <header class="header">
     <div class="header__logo">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <circle cx="10" cy="10" r="9" stroke="#2563EB" stroke-width="2"/>
-        <circle cx="10" cy="10" r="4" fill="#2563EB"/>
-        <line x1="16" y1="16" x2="18.5" y2="18.5" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="10" cy="10" r="9" stroke="#8C5E4A" stroke-width="2" />
+        <circle cx="10" cy="10" r="4" fill="#8C5E4A" />
+        <line x1="16" y1="16" x2="18.5" y2="18.5" stroke="#8C5E4A" stroke-width="2" stroke-linecap="round" />
       </svg>
-      TruthLens
+      Promethius
     </div>
     <span id="connection-dot" class="dot dot--unknown" title="OpenClaw status unknown"></span>
   </header>
 
   <!-- ── Tab bar ────────────────────────────────────────────────────────── -->
   <nav class="tabs" role="tablist">
-    <button class="tab tab--active" data-tab="scan"     role="tab" aria-selected="true">Scan</button>
-    <button class="tab"             data-tab="history"  role="tab">History</button>
-    <button class="tab"             data-tab="settings" role="tab">Settings</button>
+    <button class="tab tab--active" data-tab="scan" role="tab" aria-selected="true">Image Check</button>
+    <button class="tab" data-tab="video" role="tab">Video Check</button>
+    <button class="tab" data-tab="history" role="tab">History</button>
+    <button class="tab" data-tab="settings" role="tab">Settings</button>
   </nav>
 
   <!-- ── Scan tab ───────────────────────────────────────────────────────── -->
@@ -38,13 +41,13 @@
       <div id="state-empty" class="state">
         <div class="empty-icon" aria-hidden="true">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <circle cx="16" cy="16" r="12" stroke="#CBD5E1" stroke-width="2.5"/>
-            <circle cx="16" cy="16" r="5" fill="#CBD5E1"/>
-            <line x1="25" y1="25" x2="30" y2="30" stroke="#CBD5E1" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="12" stroke="#CBD5E1" stroke-width="2.5" />
+            <circle cx="16" cy="16" r="5" fill="#CBD5E1" />
+            <line x1="25" y1="25" x2="30" y2="30" stroke="#CBD5E1" stroke-width="2.5" stroke-linecap="round" />
           </svg>
         </div>
         <p class="empty-title">Nothing scanned yet</p>
-        <p class="empty-sub">Right-click an image or video and choose<br><em>Check with TruthLens</em></p>
+        <p class="empty-sub">Right-click an image or video and choose<br><em>Verify With Promethius</em></p>
       </div>
 
       <!-- Loading / shimmer state -->
@@ -62,6 +65,8 @@
         </div>
         <p id="preview-only-url" class="result-url"></p>
         <p class="preview-only-note">Scanning not yet implemented</p>
+        <br>
+        <button id="btn-clear-result" class="btn">Clear</button>
       </div>
 
       <!-- Result state -->
@@ -75,13 +80,11 @@
         <div class="gauge-wrap">
           <svg viewBox="0 0 200 110" width="200" height="110" aria-hidden="true">
             <!-- Track -->
-            <path d="M20,100 A80,80 0 0,1 180,100"
-                  fill="none" stroke="#E2E8F0" stroke-width="16" stroke-linecap="round"/>
+            <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#E2E8F0" stroke-width="16"
+              stroke-linecap="round" />
             <!-- Value arc – stroke-dashoffset set by JS -->
-            <path id="gauge-arc"
-                  d="M20,100 A80,80 0 0,1 180,100"
-                  fill="none" stroke="#2563EB" stroke-width="16" stroke-linecap="round"
-                  stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+            <path id="gauge-arc" d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#8C5E4A" stroke-width="16"
+              stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
           </svg>
           <div class="gauge-pct-wrap">
             <span id="gauge-pct" class="gauge-pct">--%</span>
@@ -100,16 +103,31 @@
     <div class="section">
       <button id="btn-pick" class="btn btn--primary btn--full">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-          <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="6" y1="2" x2="6" y2="0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="6" y1="12" x2="6" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="2" y1="6" x2="0" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="12" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5" />
+          <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <line x1="6" y1="2" x2="6" y2="0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <line x1="6" y1="12" x2="6" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <line x1="2" y1="6" x2="0" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <line x1="12" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
         </svg>
-        Pick an image or video
+        Grab Image from page
       </button>
     </div>
+
+    <div class="section">
+      <button id="btn-upload" class="btn btn--primary btn--full">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1v8M4 4l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" />
+        </svg>
+        Upload from device
+      </button>
+      <input id="file-input" type="file" accept="image/*,video/*" style="display:none" />
+    </div>
+
+
 
     <hr class="divider" />
 
@@ -117,10 +135,10 @@
     <div class="section">
       <button id="btn-batch" class="btn btn--secondary btn--full">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
-          <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
-          <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
-          <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5" />
+          <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5" />
+          <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5" />
+          <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5" />
         </svg>
         Scan All Images on Page
       </button>
@@ -135,22 +153,59 @@
 
     <hr class="divider" />
 
-    <!-- Proactive scan -->
+
+  </section>
+
+  <!-- ── Video Check tab ───────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-video" role="tabpanel" hidden>
+
     <div class="section">
-      <div class="row row--between">
-        <label class="label" for="toggle-proactive">Auto-scan on page load</label>
-        <button id="toggle-proactive" class="toggle" role="switch" aria-checked="false">
-          <span class="toggle__thumb"></span>
-        </button>
+      <label class="label" for="video-url-input">Video URL</label>
+      <input id="video-url-input" class="input" type="url" placeholder="https://…" />
+    </div>
+
+    <div class="or-divider"><span>or</span></div>
+
+    <div class="section">
+      <button id="btn-upload-video" class="btn btn--secondary btn--full">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1v8M4 4l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" />
+        </svg>
+        Upload video from device
+      </button>
+      <input id="video-file-input" type="file" accept="video/*" style="display:none" />
+    </div>
+
+    <div class="section">
+      <button id="btn-analyze-video" class="btn btn--primary btn--full" disabled>Analyze Video</button>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Result area -->
+    <div id="video-state-empty" class="state">
+      <p class="empty-title">No video analyzed yet</p>
+      <p class="empty-sub">Enter a URL or upload a video above.</p>
+    </div>
+
+    <div id="video-state-loading" class="state" hidden>
+      <div class="shimmer shimmer--label" style="width:85%;margin-bottom:8px"></div>
+      <div class="shimmer shimmer--label" style="width:100%;margin-bottom:6px"></div>
+      <div class="shimmer shimmer--label" style="width:70%"></div>
+    </div>
+
+    <div id="video-state-result" class="state" hidden>
+      <div class="video-analysis-wrap">
+        <p id="video-analysis-text" class="video-analysis-text"></p>
       </div>
-      <div class="row row--between" id="sensitivity-row">
-        <label class="label label--muted" for="sensitivity-select">Sensitivity</label>
-        <select id="sensitivity-select" class="select">
-          <option value="high">High</option>
-          <option value="medium" selected>Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
+      <p id="video-result-source" class="result-url" style="margin-top:8px"></p>
+    </div>
+
+    <div id="video-state-error" class="state" hidden>
+      <p id="video-error-text" class="feedback feedback--error" style="text-align:center"></p>
     </div>
 
   </section>
@@ -170,8 +225,8 @@
     <div class="section">
       <label class="label" for="api-key-input">AI-or-Not API Key</label>
       <div class="input-row">
-        <input id="api-key-input" class="input" type="password"
-               placeholder="sk-…" autocomplete="off" spellcheck="false" />
+        <input id="api-key-input" class="input" type="password" placeholder="sk-…" autocomplete="off"
+          spellcheck="false" />
         <button id="btn-save-key" class="btn btn--secondary">Save</button>
       </div>
     </div>
@@ -179,8 +234,7 @@
     <div class="section">
       <label class="label" for="endpoint-input">OpenClaw Endpoint</label>
       <div class="input-row">
-        <input id="endpoint-input" class="input" type="url"
-               placeholder="http://localhost:3000/api/truthlens" />
+        <input id="endpoint-input" class="input" type="url" placeholder="http://localhost:3000/api/truthlens" />
         <button id="btn-save-endpoint" class="btn btn--secondary">Save</button>
       </div>
     </div>
@@ -204,8 +258,29 @@
       <p id="cache-feedback" class="feedback" hidden></p>
     </div>
 
+    <!-- Proactive scan -->
+    <div class="section">
+      <div class="row row--between">
+        <label class="label" for="toggle-proactive">Auto-scan on page load</label>
+        <button id="toggle-proactive" class="toggle" role="switch" aria-checked="false">
+          <span class="toggle__thumb"></span>
+        </button>
+      </div>
+      <div class="row row--between" id="sensitivity-row">
+        <label class="label label--muted" for="sensitivity-select">Sensitivity</label>
+        <select id="sensitivity-select" class="select">
+          <option value="high">High</option>
+          <option value="medium" selected>Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+    </div>
+
+
+
   </section>
 
   <script src="popup.js"></script>
 </body>
+
 </html>
