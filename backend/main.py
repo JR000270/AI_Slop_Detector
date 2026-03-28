@@ -1,8 +1,8 @@
 from fastapi import FastAPI, UploadFile, File
 import os
 import httpx
-from helper import get_ai_or_not_api_key
-from gemini_functions import generate_text, describe_image, get_available_models
+from helper import get_ai_or_not_api_key, download_image_from_url
+from gemini_functions import generate_text, describe_image, get_available_models, analyze_youtube_video
 import asyncio
 
 app = FastAPI()
@@ -28,7 +28,7 @@ async def send_image(file: UploadFile = File(...)):
         return response.json()
         
 if __name__ == "__main__":
-    result = asyncio.run(send_image(IMAGE))
-    
+    #result = asyncio.run(send_image(IMAGE))
     #print(result)
     #return response.json()
+    pass
