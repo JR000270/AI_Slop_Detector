@@ -18,9 +18,9 @@
     selecting = true;
     document.body.classList.add('tl-selecting');
     document.addEventListener('mouseover', onSelectionHover, true);
-    document.addEventListener('mouseout',  onSelectionOut,   true);
-    document.addEventListener('click',     onSelectionClick, true);
-    document.addEventListener('keydown',   onSelectionEsc,   true);
+    document.addEventListener('mouseout', onSelectionOut, true);
+    document.addEventListener('click', onSelectionClick, true);
+    document.addEventListener('keydown', onSelectionEsc, true);
     showToast('Click an image or video to scan it — Esc to cancel');
   }
 
@@ -29,9 +29,9 @@
     selecting = false;
     document.body.classList.remove('tl-selecting');
     document.removeEventListener('mouseover', onSelectionHover, true);
-    document.removeEventListener('mouseout',  onSelectionOut,   true);
-    document.removeEventListener('click',     onSelectionClick, true);
-    document.removeEventListener('keydown',   onSelectionEsc,   true);
+    document.removeEventListener('mouseout', onSelectionOut, true);
+    document.removeEventListener('click', onSelectionClick, true);
+    document.removeEventListener('keydown', onSelectionEsc, true);
     clearSelectionHighlight();
   }
 
@@ -52,7 +52,7 @@
     e.preventDefault();
     e.stopImmediatePropagation();
 
-    const url  = mediaUrl(el);
+    const url = mediaUrl(el);
     const type = el.tagName.toLowerCase() === 'video' ? 'video' : 'image';
     if (!url) { stopSelection(); return; }
     stopSelection();
@@ -215,7 +215,7 @@
     // Position relative to the media element's top-right corner
     const parentRect = parent.getBoundingClientRect();
     const elRect = mediaEl.getBoundingClientRect();
-    badge.style.top  = (elRect.top  - parentRect.top  + 4) + 'px';
+    badge.style.top = (elRect.top - parentRect.top + 4) + 'px';
     badge.style.left = (elRect.right - parentRect.left - 4) + 'px'; // anchored right via transform
 
     badge.addEventListener('click', e => {
@@ -238,9 +238,9 @@
       badge.classList.add(`tl-badge--${data.cls}`);
       badge.innerHTML = `<span class="tl-badge__pct">${data.score}%</span>`;
       badge.title = `TruthLens: ${data.label} (${data.score}% AI probability)`;
-      badge.dataset.score  = data.score;
-      badge.dataset.label  = data.label;
-      badge.dataset.cls    = data.cls;
+      badge.dataset.score = data.score;
+      badge.dataset.label = data.label;
+      badge.dataset.cls = data.cls;
     } else if (state === 'error') {
       badge.classList.add('tl-badge--error');
       badge.innerHTML = '!';
@@ -265,7 +265,7 @@
     if (isNaN(score)) return; // no result yet
 
     const label = badge.dataset.label;
-    const cls   = badge.dataset.cls;
+    const cls = badge.dataset.cls;
 
     const detail = document.createElement('div');
     detail.className = `tl-detail tl-detail--${cls}`;
@@ -299,8 +299,12 @@
     // Place below the badge
     const bRect = badge.getBoundingClientRect();
     const pRect = badge.parentElement.getBoundingClientRect();
-    detail.style.top  = (bRect.bottom - pRect.top + 6) + 'px';
-    detail.style.left = Math.max(0, (bRect.right - pRect.left - detail.offsetWidth)) + 'px';
+    const DETAIL_W = 200; // matches .tl-detail width in content.css
+    detail.style.top = (bRect.bottom - pRect.top + 6) + 'px';
+    detail.style.left = Math.max(0, Math.min(
+      bRect.right - pRect.left - DETAIL_W,
+      pRect.width - DETAIL_W
+    )) + 'px';
 
     activeDetail = detail;
 

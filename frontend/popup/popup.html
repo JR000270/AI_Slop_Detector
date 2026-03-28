@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TruthLens</title>
+  <title>Slop Detector</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 
@@ -64,9 +64,10 @@
           <video id="preview-only-vid" class="result-preview" muted playsinline hidden></video>
         </div>
         <p id="preview-only-url" class="result-url"></p>
-        <p class="preview-only-note">Scanning not yet implemented</p>
-        <br>
-        <button id="btn-clear-result" class="btn">Clear</button>
+        <div class="preview-actions">
+          <button id="btn-analyze-upload" class="btn btn--primary" disabled>Analyze</button>
+          <button id="btn-clear-result" class="btn">Clear</button>
+        </div>
       </div>
 
       <!-- Result state -->

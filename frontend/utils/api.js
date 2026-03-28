@@ -21,9 +21,9 @@ function hashString(str) {
  * @param {number} score 0–100
  */
 function classifyScore(score) {
-  if (score < 40) return { label: 'Likely Real',         cls: 'green' };
-  if (score < 70) return { label: 'Uncertain',           cls: 'yellow' };
-  return             { label: 'Likely AI-Generated',     cls: 'red' };
+  if (score < 40) return { label: 'Likely Real', cls: 'green' };
+  if (score < 70) return { label: 'Uncertain', cls: 'yellow' };
+  return { label: 'Likely AI-Generated', cls: 'red' };
 }
 
 /**

@@ -7,72 +7,79 @@
 
 const $ = id => document.getElementById(id);
 
-const tabs           = document.querySelectorAll('.tab');
-const panels         = { scan: $('tab-scan'), video: $('tab-video'), history: $('tab-history'), settings: $('tab-settings') };
+const tabs = document.querySelectorAll('.tab');
+const panels = { scan: $('tab-scan'), video: $('tab-video'), history: $('tab-history'), settings: $('tab-settings') };
 
 // Scan tab
-const stateEmpty     = $('state-empty');
-const stateLoading   = $('state-loading');
+const stateEmpty = $('state-empty');
+const stateLoading = $('state-loading');
 // TODO: remove statePreview when scanning is implemented
-const statePreview   = $('state-preview');
+const statePreview = $('state-preview');
 const previewOnlyImg = $('preview-only-img');
 const previewOnlyVid = $('preview-only-vid');
 const previewOnlyUrl = $('preview-only-url');
-const stateResult    = $('state-result');
-const gaugeArc       = $('gauge-arc');
-const gaugePct       = $('gauge-pct');
-const gaugeLabel     = $('gauge-label');
+const stateResult = $('state-result');
+const gaugeArc = $('gauge-arc');
+const gaugePct = $('gauge-pct');
+const gaugeLabel = $('gauge-label');
 const resultPreviewImg = $('result-preview-img');
 const resultPreviewVid = $('result-preview-vid');
-const resultUrl      = $('result-url');
-const resultSource   = $('result-source');
+const resultUrl = $('result-url');
+const resultSource = $('result-source');
+const btnAnalyzeUpload = $('btn-analyze-upload');
 const btnClearResult = $('btn-clear-result');
-const btnPick        = $('btn-pick');
-const btnUpload      = $('btn-upload');
-const fileInput      = $('file-input');
-const btnBatch       = $('btn-batch');
-const batchProgress  = $('batch-progress');
-const progressBar    = $('progress-bar');
-const progressLabel  = $('progress-label');
+const btnPick = $('btn-pick');
+const btnUpload = $('btn-upload');
+const fileInput = $('file-input');
+const btnBatch = $('btn-batch');
+const batchProgress = $('batch-progress');
+const progressBar = $('progress-bar');
+const progressLabel = $('progress-label');
 const toggleProactive = $('toggle-proactive');
 const sensitivitySel = $('sensitivity-select');
 
 // Video tab
-const videoUrlInput      = $('video-url-input');
-const btnUploadVideo     = $('btn-upload-video');
-const videoFileInput     = $('video-file-input');
-const btnAnalyzeVideo    = $('btn-analyze-video');
-const videoStateEmpty    = $('video-state-empty');
-const videoStateLoading  = $('video-state-loading');
-const videoStateResult   = $('video-state-result');
-const videoStateError    = $('video-state-error');
-const videoAnalysisText  = $('video-analysis-text');
-const videoResultSource  = $('video-result-source');
-const videoErrorText     = $('video-error-text');
+const videoUrlInput = $('video-url-input');
+const btnUploadVideo = $('btn-upload-video');
+const videoFileInput = $('video-file-input');
+const btnAnalyzeVideo = $('btn-analyze-video');
+const videoStateEmpty = $('video-state-empty');
+const videoStateLoading = $('video-state-loading');
+const videoStateResult = $('video-state-result');
+const videoStateError = $('video-state-error');
+const videoAnalysisText = $('video-analysis-text');
+const videoResultSource = $('video-result-source');
+const videoErrorText = $('video-error-text');
 
 // History tab
-const historyList    = $('history-list');
-const historyEmpty   = $('history-empty');
+const historyList = $('history-list');
+const historyEmpty = $('history-empty');
 
 // Settings tab
-const apiKeyInput    = $('api-key-input');
-const endpointInput  = $('endpoint-input');
-const btnSaveKey     = $('btn-save-key');
+const apiKeyInput = $('api-key-input');
+const endpointInput = $('endpoint-input');
+const btnSaveKey = $('btn-save-key');
 const btnSaveEndpoint = $('btn-save-endpoint');
-const btnRecheck     = $('btn-recheck');
-const statusDot      = $('status-dot');
-const statusText     = $('status-text');
-const btnClearCache  = $('btn-clear-cache');
-const cacheFeedback  = $('cache-feedback');
-const connDot        = $('connection-dot');
+const btnRecheck = $('btn-recheck');
+const statusDot = $('status-dot');
+const statusText = $('status-text');
+const btnClearCache = $('btn-clear-cache');
+const cacheFeedback = $('cache-feedback');
+const connDot = $('connection-dot');
 
 // Gauge constants: path "M20,100 A80,80 0 0,1 180,100" → half-circle r=80 → length ≈ 251.2
 const GAUGE_LEN = 251.2;
+
+// Tracks the currently uploaded file so Analyze can send it to the backend
+let pendingUpload = null; // { dataUrl, objectUrl, fileName, type } | null
 
 // ── Init ──────────────────────────────────────────────────────────────────
 
 (async () => {
   setupTabs();
+  // Hide broken image elements silently rather than showing a torn-image icon
+  previewOnlyImg.onerror = () => { previewOnlyImg.hidden = true; };
+  resultPreviewImg.onerror = () => { resultPreviewImg.hidden = true; };
   await Promise.all([loadSettings(), loadLastResult()]);
   checkConnection();
 })();
@@ -115,11 +122,11 @@ async function loadSettings() {
   const { settings } = await msg({ action: 'getSettings' });
   if (!settings) return;
 
-  apiKeyInput.value     = settings.apiKey  ? '••••••••' : '';
-  endpointInput.value   = settings.endpoint || 'http://localhost:3000/api/truthlens';
+  apiKeyInput.value = settings.apiKey ? '••••••••' : '';
+  endpointInput.value = settings.endpoint || 'http://localhost:3000/api/truthlens';
 
   toggleProactive.setAttribute('aria-checked', String(!!settings.proactive));
-  sensitivitySel.value  = settings.sensitivity || 'medium';
+  sensitivitySel.value = settings.sensitivity || 'medium';
 }
 
 // ── Load last result ──────────────────────────────────────────────────────
@@ -139,8 +146,7 @@ async function loadLastResult() {
   }
 }
 
-// TODO: remove this function when scanning is implemented
-function showPreviewOnly({ url, type }) {
+function showPreviewOnly({ url, type, label }) {
   showState('preview');
   const isVideo = type === 'video';
   previewOnlyImg.hidden = isVideo;
@@ -150,17 +156,20 @@ function showPreviewOnly({ url, type }) {
   } else {
     previewOnlyImg.src = url || '';
   }
-  previewOnlyUrl.textContent = url ? truncate(url, 48) : '';
-  previewOnlyUrl.title = url || '';
+  const display = label || (url ? truncate(url, 48) : '');
+  previewOnlyUrl.textContent = display;
+  previewOnlyUrl.title = label || url || '';
+  // Enable Analyze for context-menu URLs (http); uploads enable it once data URL is ready
+  if (url && !url.startsWith('blob:')) btnAnalyzeUpload.disabled = false;
 }
 
 // ── Result rendering ──────────────────────────────────────────────────────
 
 function showState(name) {
-  stateEmpty.hidden   = name !== 'empty';
+  stateEmpty.hidden = name !== 'empty';
   stateLoading.hidden = name !== 'loading';
   statePreview.hidden = name !== 'preview'; // TODO: remove when scanning is implemented
-  stateResult.hidden  = name !== 'result';
+  stateResult.hidden = name !== 'result';
 }
 
 function showResult({ score, label, cls, url, type, source }) {
@@ -188,14 +197,16 @@ function showResult({ score, label, cls, url, type, source }) {
   gaugeLabel.textContent = label;
   gaugeLabel.className = `gauge-label gauge-label--${cls}`;
 
-  resultUrl.textContent  = url ? truncate(url, 48) : '';
-  resultUrl.title        = url || '';
+  resultUrl.textContent = url ? truncate(url, 48) : '';
+  resultUrl.title = url || '';
   resultSource.textContent = source ? `via ${source}` : '';
 }
 
 // ── Clear result ──────────────────────────────────────────────────────────
 
 btnClearResult.addEventListener('click', async () => {
+  pendingUpload = null;
+  btnAnalyzeUpload.disabled = true;
   await chrome.storage.local.remove('tl_last_result');
   showState('empty');
 });
@@ -207,12 +218,79 @@ btnUpload.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (!file) return;
-  fileInput.value = ''; // reset so same file can be re-selected
+  fileInput.value = '';
 
   const type = file.type.startsWith('video/') ? 'video' : 'image';
-  const url = URL.createObjectURL(file);
-  showPreviewOnly({ url, type });
+
+  if (file.size > 10 * 1024 * 1024) {
+    showState('preview');
+    previewOnlyImg.hidden = true;
+    previewOnlyVid.hidden = true;
+    previewOnlyUrl.textContent = 'File too large (max 10 MB)';
+    btnAnalyzeUpload.disabled = true;
+    return;
+  }
+
+  pendingUpload = null;
+  btnAnalyzeUpload.disabled = true;
+
+  // Read as data URL — works as img.src in extension pages; blob: URLs can be blocked
+  const reader = new FileReader();
+  reader.onload = () => {
+    pendingUpload = { dataUrl: reader.result, fileName: file.name, type };
+    showPreviewOnly({ url: reader.result, type, label: file.name });
+    btnAnalyzeUpload.disabled = false;
+  };
+  reader.readAsDataURL(file);
 });
+
+// ── Analyze uploaded image / context-menu URL ─────────────────────────────
+
+btnAnalyzeUpload.addEventListener('click', async () => {
+  // Determine URL and display info depending on source
+  const isUpload = pendingUpload !== null;
+  const url = isUpload ? pendingUpload.dataUrl : (previewOnlyImg.hidden ? previewOnlyVid.src : previewOnlyImg.src);
+  const type = isUpload ? pendingUpload.type : (previewOnlyImg.hidden ? 'video' : 'image');
+  const thumbnailSrc = url; // data URL works as both send payload and img src
+  const displayLabel = isUpload ? pendingUpload.fileName : truncate(url, 48);
+
+  if (!url) return;
+  showState('loading');
+
+  try {
+    const { settings } = await msg({ action: 'getSettings' });
+    const endpoint = settings?.endpoint || 'http://localhost:3000/api/truthlens';
+    const apiKey = settings?.apiKey || '';
+
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, type, apiKey }),
+    });
+
+    if (!resp.ok) throw new Error(`Server error ${resp.status}`);
+    const json = await resp.json();
+
+    const raw = json.score ?? json.ai_probability ?? json.result?.score ?? 0;
+    const score = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
+    const { label, cls } = classifyScore(score);
+
+    showResult({ score, label, cls, url: thumbnailSrc, type, source: 'openclaw' });
+    // Show filename / URL in place of blob/data URL
+    resultUrl.textContent = displayLabel;
+    resultUrl.title = displayLabel;
+  } catch (err) {
+    showState('preview');
+    previewOnlyUrl.textContent = err.message || 'Analysis failed — check connection and settings';
+    btnAnalyzeUpload.disabled = false;
+  }
+});
+
+function classifyScore(score) {
+  if (score < 40) return { label: 'Likely Real', cls: 'green' };
+  if (score < 70) return { label: 'Uncertain', cls: 'yellow' };
+  return { label: 'Likely AI-Generated', cls: 'red' };
+}
 
 // ── Single pick ───────────────────────────────────────────────────────────
 
@@ -222,8 +300,8 @@ btnPick.addEventListener('click', async () => {
 
   // Ensure content script is present (e.g. on pages opened before install)
   try {
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content/content.js'] });
-    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ['content/content.css'] });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content/content.js'] });
+    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ['/content/content.css'] });
   } catch { /* already injected or restricted page */ }
 
   chrome.tabs.sendMessage(tab.id, { action: 'startSelection' });
@@ -260,15 +338,20 @@ btnBatch.addEventListener('click', async () => {
     setTimeout(() => { batchProgress.hidden = true; }, 2500);
   };
 
-  const res = await msg({ action: 'analyzeBatch', tabId: tab.id, sensitivity: sensitivitySel.value });
-  if (res.error) {
+  try {
+    const res = await msg({ action: 'analyzeBatch', tabId: tab.id, sensitivity: sensitivitySel.value });
+    if (res.error) {
+      progressLabel.textContent = 'Error: ' + res.error;
+      finish();
+      return;
+    }
+    if (res.total === 0) {
+      progressLabel.textContent = 'No images found on this page.';
+      finish();
+    }
+  } catch (err) {
+    progressLabel.textContent = 'Error: ' + (err.message || 'Unknown error');
     finish();
-    progressLabel.textContent = 'Error: ' + res.error;
-    return;
-  }
-  if (res.total === 0) {
-    finish();
-    progressLabel.textContent = 'No images found on this page.';
   }
 });
 
@@ -289,10 +372,10 @@ sensitivitySel.addEventListener('change', () => {
 let pendingVideoUrl = '';
 
 function setVideoState(name) {
-  videoStateEmpty.hidden   = name !== 'empty';
+  videoStateEmpty.hidden = name !== 'empty';
   videoStateLoading.hidden = name !== 'loading';
-  videoStateResult.hidden  = name !== 'result';
-  videoStateError.hidden   = name !== 'error';
+  videoStateResult.hidden = name !== 'result';
+  videoStateError.hidden = name !== 'error';
 }
 
 videoUrlInput.addEventListener('input', () => {
@@ -455,7 +538,7 @@ function timeAgo(ts) {
   if (!ts) return '';
   const diff = Date.now() - ts;
   const s = Math.floor(diff / 1000);
-  if (s < 60)   return 'just now';
+  if (s < 60) return 'just now';
   if (s < 3600) return Math.floor(s / 60) + 'm ago';
   if (s < 86400) return Math.floor(s / 3600) + 'h ago';
   return Math.floor(s / 86400) + 'd ago';

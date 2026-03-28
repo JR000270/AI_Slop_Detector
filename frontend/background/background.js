@@ -13,7 +13,7 @@ const MAX_HISTORY = 50;
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'tl-check-image',
-    title: 'Check with TruthLens',
+    title: 'Check with Slop-Detector',
     contexts: ['image'],
   });
   chrome.contextMenus.create({
