@@ -50,6 +50,7 @@ const videoStateResult = $('video-state-result');
 const videoStateError = $('video-state-error');
 const videoStateTooLong = $('video-state-toolong');
 const videoAnalysisBody = $('video-analysis-body');
+const videoAnalysisText = $('video-analysis-text');
 const videoVerdictBadge = $('video-verdict-badge');
 const videoResultSource = $('video-result-source');
 const btnClearVideo = $('btn-clear-video');
@@ -85,14 +86,14 @@ const GAUGE_LEN = 251.2;
 
 (async () => {
   setupTabs();
-  await Promise.all([loadSettings(), loadLastResult()]);
+  await Promise.all([loadSettings(), loadLastResult(), loadVideoResult()]);
   checkConnection();
 })();
 
 // Refresh the result area whenever tl_last_result changes in storage
-// (e.g. user picks an image while the panel is already open)
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.tl_last_result) {
+  if (area !== 'local') return;
+  if (changes.tl_last_result) {
     const result = changes.tl_last_result.newValue;
     if (!result) return;
     if (result.score != null) {
@@ -100,6 +101,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
     } else {
       showPreviewOnly(result);
     }
+  }
+  if (changes.tl_video_result) {
+    const vr = changes.tl_video_result.newValue;
+    if (!vr) return;
+    if (vr.status === 'done') showVideoGeminiResult(vr);
+    else if (vr.status === 'loading') setVideoState('loading');
   }
 });
 
@@ -149,6 +156,37 @@ async function loadLastResult() {
     // TODO: replace with showResult() once scanning is implemented
     showPreviewOnly(result);
   }
+}
+
+// ── Load / show video Gemini result ──────────────────────────────────────
+
+async function loadVideoResult() {
+  const vr = await new Promise(resolve =>
+    chrome.storage.local.get('tl_video_result', r => resolve(r.tl_video_result || null))
+  );
+  if (!vr) return;
+  if (vr.status === 'done') {
+    // Switch to video tab and show result
+    const videoTab = document.querySelector('[data-tab="video"]');
+    if (videoTab) videoTab.click();
+    showVideoGeminiResult(vr);
+  } else if (vr.status === 'loading') {
+    // Stale loading state from a closed popup — clear it instead of showing a spinner forever
+    chrome.storage.local.remove('tl_video_result');
+  }
+}
+
+function showVideoGeminiResult({ analysis, url }) {
+  videoDetectionRow.hidden = true;
+  videoFactcheckWrap.hidden = true;
+  videoVerdictBadge.hidden = false;
+  videoVerdictBadge.textContent = analysis;
+  videoVerdictBadge.className = 'verdict-badge verdict-badge--yellow';
+  videoAnalysisText.textContent = analysis;
+  videoAnalysisText.hidden = false;
+  videoResultSource.textContent = url ? `Source: ${truncate(url, 48)}` : '';
+  setVideoState('result');
+  chrome.storage.local.remove('tl_video_result');
 }
 
 // TODO: remove this function when scanning is implemented
@@ -429,7 +467,6 @@ btnUploadVideo.addEventListener('click', () => videoFileInput.click());
 videoFileInput.addEventListener('change', () => {
   const file = videoFileInput.files[0];
   if (!file) return;
-  videoFileInput.value = '';
 
   if (file.size > 200 * 1024 * 1024) {
     setVideoState('error');
@@ -438,87 +475,56 @@ videoFileInput.addEventListener('change', () => {
   }
 
   pendingVideoFile = file;
-  pendingVideoUrl = URL.createObjectURL(file); // blob URL for preview; File kept for upload
+  pendingVideoUrl = '';
   videoUrlInput.value = '';
   videoUrlInput.placeholder = file.name;
   btnAnalyzeVideo.disabled = false;
+  console.log('[video] file staged:', file.name);
 });
 
 btnAnalyzeVideo.addEventListener('click', async () => {
-  if (!pendingVideoUrl) return;
+  console.log('[video] clicked, pendingVideoUrl:', pendingVideoUrl, '| pendingVideoFile:', pendingVideoFile);
+  if (!pendingVideoUrl && !pendingVideoFile) { console.warn('[video] nothing pending, aborting'); return; }
 
   btnAnalyzeVideo.disabled = true;
   setVideoState('loading');
 
-  // ── File upload: AI detection only (direct fetch, no fact-check) ──────────
-  if (pendingVideoFile) {
-    const endpoint = await new Promise(resolve =>
-      chrome.storage.local.get('tl_settings', r =>
-        resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
-      )
-    );
-    try {
+  const endpoint = await new Promise(resolve =>
+    chrome.storage.local.get('tl_settings', r =>
+      resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
+    )
+  );
+
+  try {
+    let analysis;
+
+    if (pendingVideoFile) {
       const form = new FormData();
       form.append('file', pendingVideoFile, pendingVideoFile.name);
-      const res = await fetch(`${endpoint}/video/`, { method: 'POST', body: form });
+      const res = await fetch(`${endpoint}/video/gemini/upload`, { method: 'POST', body: form });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const json = await res.json();
-      showVideoDetection(normalizeVideoResult(json));
-      videoFactcheckWrap.hidden = true;
-      videoResultSource.textContent = `Source: ${pendingVideoFile.name}`;
-      setVideoState('result');
-    } catch (err) {
-      setVideoState('error');
-      videoErrorText.textContent = err.message || 'Detection failed.';
+      analysis = json.analysis;
+    } else {
+      await chrome.storage.local.set({ tl_video_result: { status: 'loading', url: pendingVideoUrl } });
+      const res = await fetch(`${endpoint}/video/gemini/url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: pendingVideoUrl }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const json = await res.json();
+      analysis = json.analysis;
     }
-    btnAnalyzeVideo.disabled = false;
-    return;
-  }
 
-  // ── URL: fact-check + AI detection in parallel ────────────────────────────
-  const [factRes, detRes] = await Promise.all([
-    msg({ action: 'analyzeVideoContent', url: pendingVideoUrl }),
-    msg({ action: 'analyzeVideoDetection', url: pendingVideoUrl }),
-  ]);
+    showVideoGeminiResult({ analysis, url: pendingVideoFile ? pendingVideoFile.name : pendingVideoUrl });
+  } catch (err) {
+    console.error('[video] error:', err);
+    setVideoState('error');
+    videoErrorText.textContent = err.message || 'Analysis failed.';
+  }
 
   btnAnalyzeVideo.disabled = false;
-
-  // "Too long" response takes priority
-  if (factRes.toolong) {
-    const endpoint = await new Promise(resolve =>
-      chrome.storage.local.get('tl_settings', r =>
-        resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
-      )
-    );
-    videoTooLongText.textContent = factRes.detail || 'Video is too long to analyze.';
-    btnDownloadClip.href = `${endpoint}/factcheck/video/download/${factRes.downloadToken}`;
-    setVideoState('toolong');
-    return;
-  }
-
-  if (factRes.error && detRes.error) {
-    setVideoState('error');
-    videoErrorText.textContent = factRes.error || detRes.error;
-    return;
-  }
-
-  // Show AI detection row if available
-  if (detRes.detection && !detRes.error) {
-    showVideoDetection(detRes.detection);
-  } else {
-    videoDetectionRow.hidden = true;
-  }
-
-  // Show fact-check card if available
-  if (factRes.ok && !factRes.error) {
-    renderFactCheck(factRes);
-    videoFactcheckWrap.hidden = false;
-  } else {
-    videoFactcheckWrap.hidden = true;
-  }
-
-  videoResultSource.textContent = `Source: ${truncate(pendingVideoUrl, 48)}`;
-  setVideoState('result');
 });
 
 function resetVideoTab() {
@@ -719,10 +725,19 @@ btnClearCache.addEventListener('click', async () => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function msg(payload) {
+function msg(payload, _attempt = 0) {
   return new Promise(resolve => {
     chrome.runtime.sendMessage(payload, res => {
-      if (chrome.runtime.lastError) return resolve({ error: chrome.runtime.lastError.message });
+      const err = chrome.runtime.lastError;
+      if (err) {
+        // Service worker may be waking up — retry once after a short delay
+        if (_attempt === 0 && err.message && err.message.includes('Receiving end does not exist')) {
+          setTimeout(() => msg(payload, 1).then(resolve), 500);
+        } else {
+          resolve({ error: err.message });
+        }
+        return;
+      }
       resolve(res || {});
     });
   });
@@ -758,3 +773,4 @@ function timeAgo(ts) {
   if (s < 86400) return Math.floor(s / 3600) + 'h ago';
   return Math.floor(s / 86400) + 'd ago';
 }
+

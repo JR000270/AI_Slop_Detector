@@ -2,7 +2,11 @@
  * background/background.js — MV3 Service Worker
  * Loaded via importScripts for Chrome; listed in "scripts" array for Firefox.
  */
-importScripts('../utils/api.js');
+// Chrome service worker: importScripts is available
+// Firefox loads api.js first via the manifest "scripts" array, so importScripts isn't needed
+if (typeof importScripts === 'function') {
+  importScripts('../utils/api.js');
+}
 
 const HISTORY_KEY = 'tl_history';
 const SETTINGS_KEY = 'tl_settings';
@@ -109,6 +113,22 @@ async function handle(msg, sender) {
         }
       })();
       return { ok: true };
+    }
+
+    case 'analyzeVideoGemini': {
+      const { url } = msg;
+      const settings = await getSettings();
+      const endpoint = settings.endpoint || 'http://localhost:8000';
+      await chrome.storage.local.set({ tl_video_result: { status: 'loading', url } });
+      const res = await fetch(`${endpoint}/video/gemini/url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const json = await res.json();
+      await chrome.storage.local.set({ tl_video_result: { status: 'done', url, analysis: json.analysis } });
+      return { ok: true, analysis: json.analysis };
     }
 
     case 'analyzeVideoContent': {
