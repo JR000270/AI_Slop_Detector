@@ -1,13 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
-from routes import image, video, factcheck
+from routes import text, video, factcheck
 
 app = FastAPI()
-app.include_router(image.router)
+app.include_router(text.router)
 app.include_router(video.router)
 app.include_router(factcheck.router)
-
 
 @app.get("/health")
 async def health_check():
@@ -16,7 +15,6 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,4 +22,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-

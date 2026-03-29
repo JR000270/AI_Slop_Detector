@@ -18,7 +18,7 @@
         <circle cx="10" cy="10" r="4" fill="#8C5E4A" />
         <line x1="16" y1="16" x2="18.5" y2="18.5" stroke="#8C5E4A" stroke-width="2" stroke-linecap="round" />
       </svg>
-      Promethius
+      Slop Detector
     </div>
     <span id="connection-dot" class="dot dot--unknown" title="OpenClaw status unknown"></span>
   </header>
@@ -55,20 +55,6 @@
         <div class="shimmer shimmer--url"></div>
       </div>
 
-      <!-- Preview-only state (no scan result yet) — TODO: remove when scanning is implemented -->
-      <div id="state-preview" class="state" hidden>
-        <div class="result-preview-wrap">
-          <img id="preview-only-img" class="result-preview" alt="Selected image" hidden />
-          <video id="preview-only-vid" class="result-preview" muted playsinline hidden></video>
-        </div>
-        <p id="preview-only-url" class="result-url"></p>
-        <p class="preview-only-note">Scanning not yet implemented</p>
-        <br>
-        <div style="display:flex;gap:8px;">
-          <button id="btn-analyze-upload" class="btn btn--primary" disabled>Analyze</button>
-          <button id="btn-clear-result" class="btn">Clear</button>
-        </div>
-      </div>
 
       <!-- Result state -->
       <div id="state-result" class="state" hidden>
