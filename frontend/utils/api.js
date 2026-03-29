@@ -4,7 +4,7 @@
  * Must use no ES module syntax (importScripts requires classic scripts).
  */
 
-const DEFAULT_ENDPOINT = 'http://localhost:3000/api/truthlens';
+const DEFAULT_ENDPOINT = 'http://localhost:8000';
 
 /** Simple djb2 hash of a string → hex string (used as cache key). */
 function hashString(str) {
@@ -21,9 +21,9 @@ function hashString(str) {
  * @param {number} score 0–100
  */
 function classifyScore(score) {
-  if (score < 40) return { label: 'Likely Real',         cls: 'green' };
-  if (score < 70) return { label: 'Uncertain',           cls: 'yellow' };
-  return             { label: 'Likely AI-Generated',     cls: 'red' };
+  if (score < 40) return { label: 'Likely Real', cls: 'green' };
+  if (score < 70) return { label: 'Uncertain', cls: 'yellow' };
+  return { label: 'Likely AI-Generated', cls: 'red' };
 }
 
 /**
@@ -46,13 +46,13 @@ async function analyzeMedia(url, type, apiKey, endpoint = DEFAULT_ENDPOINT) {
   // 2. Try OpenClaw local agent
   let result = null;
   try {
-    const res = await fetchWithTimeout(endpoint, {
+    const res = await fetchWithTimeout(`${endpoint}/image/url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, type, apiKey }),
+      body: JSON.stringify({ url }),
     }, 8000);
 
-    if (!res.ok) throw new Error(`OpenClaw ${res.status}`);
+    if (!res.ok) throw new Error(`Backend ${res.status}`);
     const json = await res.json();
     result = normalizeResult(json, 'openclaw');
   } catch (openClawErr) {
@@ -108,11 +108,10 @@ async function callDirectApi(url, type, apiKey) {
  * @returns {Promise<string>}  Analysis text
  */
 async function analyzeVideoContent(url, apiKey, endpoint = DEFAULT_ENDPOINT) {
-  const videoEndpoint = endpoint.replace(/\/api\/truthlens$/, '/api/truthlens/video');
-  const res = await fetchWithTimeout(videoEndpoint, {
+  const res = await fetchWithTimeout(`${endpoint}/image/gemini/youtube`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, apiKey }),
+    body: JSON.stringify({ url }),
   }, 60000); // generous timeout — video analysis takes longer
 
   if (!res.ok) throw new Error(`Server error ${res.status}`);
@@ -122,11 +121,10 @@ async function analyzeVideoContent(url, apiKey, endpoint = DEFAULT_ENDPOINT) {
   return text;
 }
 
-/** Ping OpenClaw health endpoint. Returns true if reachable. */
+/** Ping backend health endpoint. Returns true if reachable. */
 async function checkOpenClawConnection(endpoint = DEFAULT_ENDPOINT) {
   try {
-    const healthUrl = endpoint.replace(/\/api\/truthlens$/, '/health');
-    const res = await fetchWithTimeout(healthUrl, { method: 'GET' }, 3000);
+    const res = await fetchWithTimeout(`${endpoint}/health`, { method: 'GET' }, 3000);
     return res.ok;
   } catch {
     return false;

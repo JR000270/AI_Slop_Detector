@@ -162,7 +162,7 @@ async function getSettings() {
     chrome.storage.local.get(SETTINGS_KEY, res => {
       resolve({
         apiKey: '',
-        endpoint: 'http://localhost:3000/api/truthlens',
+        endpoint: 'http://localhost:8000',
         proactive: false,
         sensitivity: 'medium',
         ...(res[SETTINGS_KEY] || {}),

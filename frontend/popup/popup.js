@@ -30,6 +30,7 @@ const btnClearResult = $('btn-clear-result');
 const btnPick        = $('btn-pick');
 const btnUpload      = $('btn-upload');
 const fileInput      = $('file-input');
+const btnAnalyzeUpload = $('btn-analyze-upload');
 const btnBatch       = $('btn-batch');
 const batchProgress  = $('batch-progress');
 const progressBar    = $('progress-bar');
@@ -116,7 +117,7 @@ async function loadSettings() {
   if (!settings) return;
 
   apiKeyInput.value     = settings.apiKey  ? '••••••••' : '';
-  endpointInput.value   = settings.endpoint || 'http://localhost:3000/api/truthlens';
+  endpointInput.value   = settings.endpoint || 'http://localhost:8000';
 
   toggleProactive.setAttribute('aria-checked', String(!!settings.proactive));
   sensitivitySel.value  = settings.sensitivity || 'medium';
@@ -202,6 +203,8 @@ btnClearResult.addEventListener('click', async () => {
 
 // ── Upload from device ────────────────────────────────────────────────────
 
+let pendingUploadFile = null; // File object held for the Analyze button
+
 btnUpload.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', () => {
@@ -210,8 +213,61 @@ fileInput.addEventListener('change', () => {
   fileInput.value = ''; // reset so same file can be re-selected
 
   const type = file.type.startsWith('video/') ? 'video' : 'image';
-  const url = URL.createObjectURL(file);
-  showPreviewOnly({ url, type });
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    pendingUploadFile = file;
+    btnAnalyzeUpload.disabled = false;
+    showPreviewOnly({ url: reader.result, type });
+    previewOnlyUrl.textContent = file.name;
+    previewOnlyUrl.title = file.name;
+  };
+  reader.readAsDataURL(file);
+});
+
+btnAnalyzeUpload.addEventListener('click', async () => {
+  if (!pendingUploadFile) return;
+
+  const settings = await msg({ action: 'getSettings' });
+  const endpoint = settings.settings?.endpoint || 'http://localhost:8000';
+
+  showState('loading');
+  btnAnalyzeUpload.disabled = true;
+
+  try {
+    const form = new FormData();
+    form.append('file', pendingUploadFile, pendingUploadFile.name);
+
+    const res = await fetch(`${endpoint}/image/`, {
+      method: 'POST',
+      body: form,
+    });
+
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const json = await res.json();
+
+    // Normalize the aiornot response: score is 0-1 float
+    const raw = json.score ?? json.ai_probability ?? json.result?.score ?? 0;
+    const score = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
+    const { label, cls } = score < 40
+      ? { label: 'Likely Real', cls: 'green' }
+      : score < 70
+        ? { label: 'Uncertain', cls: 'yellow' }
+        : { label: 'Likely AI-Generated', cls: 'red' };
+
+    const dataUrl = await new Promise(resolve => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.readAsDataURL(pendingUploadFile);
+    });
+
+    showResult({ score, label, cls, url: dataUrl, type: pendingUploadFile.type.startsWith('video/') ? 'video' : 'image', source: 'backend' });
+    pendingUploadFile = null;
+  } catch (err) {
+    showState('preview');
+    previewOnlyUrl.textContent = err.message;
+    btnAnalyzeUpload.disabled = false;
+  }
 });
 
 // ── Single pick ───────────────────────────────────────────────────────────
@@ -222,8 +278,8 @@ btnPick.addEventListener('click', async () => {
 
   // Ensure content script is present (e.g. on pages opened before install)
   try {
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content/content.js'] });
-    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ['content/content.css'] });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content/content.js'] });
+    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ['/content/content.css'] });
   } catch { /* already injected or restricted page */ }
 
   chrome.tabs.sendMessage(tab.id, { action: 'startSelection' });
