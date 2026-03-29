@@ -156,6 +156,15 @@ video.tl-hover {
 .tl-detail--yellow .tl-detail__label { color: #d97706; }
 .tl-detail--red    .tl-detail__label { color: #dc2626; }
 
+.tl-detail__summary {
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.4;
+  text-align: center;
+  margin: 4px 0;
+  padding: 0 4px;
+}
+
 .tl-detail__url {
   font-size: 10px;
   color: #94a3b8;
