@@ -238,6 +238,7 @@ btnClearResultScan.addEventListener('click', async () => {
 // ── Upload from device ────────────────────────────────────────────────────
 
 let pendingUploadFile = null; // File object held for the Analyze button
+let pendingPick = null;       // { url, type } for page-grabbed images
 
 btnUpload.addEventListener('click', () => fileInput.click());
 
