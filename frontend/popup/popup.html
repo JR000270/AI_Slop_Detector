@@ -418,14 +418,23 @@
       <p id="article-char-hint" class="art-char-hint">0 / 15 000 chars</p>
     </div>
 
-    <div class="section">
-      <button id="btn-analyze-article" class="btn btn--primary btn--full" disabled>
+    <div class="section art-btn-row">
+      <button id="btn-detect-article" class="btn btn--primary" disabled>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5" />
-          <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor"
-            stroke-width="1.5" stroke-linecap="round" />
+          <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.4" />
+          <path d="M1.5 13c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5"
+            stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
         </svg>
-        Analyze Article
+        Detect AI
+      </button>
+      <button id="btn-factcheck-article" class="btn btn--secondary" disabled>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1L2 3.5V7c0 2.8 2.5 4.8 5 5.2C9.5 12 12 10 12 7V3.5L7 1z"
+            stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+          <path d="M4.5 7l1.8 1.8 3.5-3.5" stroke="currentColor"
+            stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Fact Check
       </button>
     </div>
 

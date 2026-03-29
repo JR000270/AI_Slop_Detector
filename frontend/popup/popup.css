@@ -1235,6 +1235,16 @@ body {
   color: var(--yellow);
 }
 
+/* Two-button row */
+.art-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.art-btn-row .btn {
+  flex: 1;
+}
+
 /* Empty state */
 .art-empty {
   padding: 12px 0 8px;
