@@ -102,6 +102,7 @@ async def analyze_image(image_bytes: bytes, mime_type: str) -> dict:
         raise HTTPException(status_code=500, detail="Gemini returned malformed JSON")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gemini error: {str(e)}")
+import httpx
 import io
 from PIL import Image
 from fastapi import HTTPException

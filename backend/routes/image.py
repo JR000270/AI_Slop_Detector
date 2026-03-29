@@ -26,6 +26,7 @@ async def analyze_image_route(file: UploadFile = File(...)):
 
     image_bytes = await file.read()
     return await analyze_image(image_bytes, file.content_type)
+import io
 from PIL import Image
 from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
