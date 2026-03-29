@@ -827,6 +827,9 @@ function showVideoGeminiResult({ analysis, url }) {
 }
 
 function showPreviewOnly({ url, type }) {
+  // Ensure the scan tab is visible (loadVideoResult may have switched away from it)
+  const scanTabBtn = document.querySelector('[data-tab="scan"]');
+  if (scanTabBtn && !scanTabBtn.classList.contains('tab--active')) scanTabBtn.click();
   showState('preview');
   const isVideo = type === 'video';
   previewOnlyImg.hidden = isVideo;
@@ -1075,13 +1078,14 @@ btnPick.addEventListener('click', async () => {
     await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ['/content/content.css'] });
   } catch { /* already injected or restricted page */ }
 
-  chrome.tabs.sendMessage(tab.id, { action: 'startSelection' });
-  // No window.close() — panel/window stays open so the result appears here automatically
+  // Await delivery so selection mode starts before the popup context is destroyed
+  await chrome.tabs.sendMessage(tab.id, { action: 'startSelection' }).catch(() => {});
+  window.close(); // Close popup so user can click images on the page; result loads via tl_last_result on reopen
 });
 
 // ── Batch scan ────────────────────────────────────────────────────────────
 
-btnBatch.addEventListener('click', async () => {
+if (btnBatch) btnBatch.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
 

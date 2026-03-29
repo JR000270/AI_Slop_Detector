@@ -58,6 +58,7 @@
     stopSelection();
 
     chrome.storage.local.set({ tl_last_result: { url, type, score: null } });
+    showToast('Image selected — click the extension icon to analyze it');
   }
 
   function onSelectionEsc(e) {
