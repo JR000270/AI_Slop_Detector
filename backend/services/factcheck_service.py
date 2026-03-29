@@ -39,7 +39,13 @@ MAX_VIDEO_SECONDS = 60
 # Maps token -> temp file path for videos that were too long
 _pending_downloads: dict[str, str] = {}
 
-gemini_client = genai.Client(api_key=get_gemini_api_key())
+_gemini_client = None
+
+def _get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        _gemini_client = genai.Client(api_key=get_gemini_api_key())
+    return _gemini_client
 MODEL = "gemini-2.5-flash"
 
 CLAIMS_PROMPT = """Extract the key factual claims from the following content.
@@ -70,7 +76,7 @@ def _score_to_verdict(score: int) -> str:
 
 async def _extract_claims_from_parts(contents) -> list[str]:
     response = await asyncio.to_thread(
-        gemini_client.models.generate_content,
+        _get_gemini_client().models.generate_content,
         model=MODEL,
         contents=contents,
     )
@@ -88,7 +94,7 @@ async def _factcheck_claims(claims: list[str]) -> tuple[int, str, str, list[Arti
     prompt = FACTCHECK_PROMPT_TEMPLATE.format(claims=json.dumps(claims))
 
     response = await asyncio.to_thread(
-        gemini_client.models.generate_content,
+        _get_gemini_client().models.generate_content,
         model=MODEL,
         contents=prompt,
         config=types.GenerateContentConfig(
@@ -195,7 +201,7 @@ async def factcheck_video_url(url: str) -> FactCheckResult | VideoTooLongRespons
         video_path = await _download_video(url, os.path.join(tmpdir, "video.%(ext)s"))
 
         uploaded = await asyncio.to_thread(
-            gemini_client.files.upload,
+            _get_gemini_client().files.upload,
             file=video_path,
             config=types.UploadFileConfig(
                 mime_type="video/mp4",
@@ -206,7 +212,7 @@ async def factcheck_video_url(url: str) -> FactCheckResult | VideoTooLongRespons
         try:
             for _ in range(20):
                 file_info = await asyncio.to_thread(
-                    gemini_client.files.get, name=uploaded.name
+                    _get_gemini_client().files.get, name=uploaded.name
                 )
                 if file_info.state and file_info.state.name == "ACTIVE":
                     break
@@ -226,7 +232,7 @@ async def factcheck_video_url(url: str) -> FactCheckResult | VideoTooLongRespons
                 articles=articles,
             )
         finally:
-            await asyncio.to_thread(gemini_client.files.delete, name=uploaded.name)
+            await asyncio.to_thread(_get_gemini_client().files.delete, name=uploaded.name)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
@@ -235,7 +241,7 @@ async def factcheck_video_upload(file) -> FactCheckResult:
     contents = await file.read()
 
     uploaded = await asyncio.to_thread(
-        gemini_client.files.upload,
+        _get_gemini_client().files.upload,
         file=contents,
         config=types.UploadFileConfig(
             mime_type=file.content_type or "video/mp4",
@@ -247,7 +253,7 @@ async def factcheck_video_upload(file) -> FactCheckResult:
         # Poll until file is ACTIVE
         for _ in range(20):
             file_info = await asyncio.to_thread(
-                gemini_client.files.get, name=uploaded.name
+                _get_gemini_client().files.get, name=uploaded.name
             )
             if file_info.state and file_info.state.name == "ACTIVE":
                 break
@@ -267,4 +273,4 @@ async def factcheck_video_upload(file) -> FactCheckResult:
             articles=articles,
         )
     finally:
-        await asyncio.to_thread(gemini_client.files.delete, name=uploaded.name)
+        await asyncio.to_thread(_get_gemini_client().files.delete, name=uploaded.name)

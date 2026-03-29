@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PLATO-AI</title>
+  <title>Slop-Detector</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 
@@ -18,7 +18,7 @@
         <circle cx="10" cy="10" r="4" fill="#8C5E4A" />
         <line x1="16" y1="16" x2="18.5" y2="18.5" stroke="#8C5E4A" stroke-width="2" stroke-linecap="round" />
       </svg>
-      Slop Detector
+      Slop-Detector
     </div>
     <span id="connection-dot" class="dot dot--unknown" title="OpenClaw status unknown"></span>
   </header>
@@ -45,7 +45,7 @@
           </svg>
         </div>
         <p class="empty-title">Nothing scanned yet</p>
-        <p class="empty-sub">Right-click an image or video and choose<br><em>Verify With Promethius</em></p>
+        <p class="empty-sub">Right-click an image or video and choose<br><em>Verify With Slop-Detector</em></p>
       </div>
 
       <!-- Loading / shimmer state -->
@@ -55,6 +55,19 @@
         <div class="shimmer shimmer--url"></div>
       </div>
 
+      <!-- Preview-only state (no scan result yet) -->
+      <div id="state-preview" class="state" hidden>
+        <div class="result-preview-wrap">
+          <img id="preview-only-img" class="result-preview" alt="Selected image" hidden />
+          <video id="preview-only-vid" class="result-preview" muted playsinline hidden></video>
+        </div>
+        <p id="preview-only-url" class="result-url"></p>
+        <br>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-analyze-upload" class="btn btn--primary" disabled>Analyze</button>
+          <button id="btn-clear-result" class="btn">Clear</button>
+        </div>
+      </div>
 
       <!-- Result state -->
       <div id="state-result" class="state" hidden>

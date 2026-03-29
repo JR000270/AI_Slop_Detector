@@ -7,76 +7,76 @@
 
 const $ = id => document.getElementById(id);
 
-const tabs           = document.querySelectorAll('.tab');
-const panels         = { scan: $('tab-scan'), video: $('tab-video'), history: $('tab-history'), settings: $('tab-settings') };
+const tabs = document.querySelectorAll('.tab');
+const panels = { scan: $('tab-scan'), video: $('tab-video'), settings: $('tab-settings') };
 
 // Scan tab
-const stateEmpty     = $('state-empty');
-const stateLoading   = $('state-loading');
+const stateEmpty = $('state-empty');
+const stateLoading = $('state-loading');
 // TODO: remove statePreview when scanning is implemented
-const statePreview   = $('state-preview');
+const statePreview = $('state-preview');
 const previewOnlyImg = $('preview-only-img');
 const previewOnlyVid = $('preview-only-vid');
 const previewOnlyUrl = $('preview-only-url');
-const stateResult    = $('state-result');
-const gaugeArc       = $('gauge-arc');
-const gaugePct       = $('gauge-pct');
-const gaugeLabel     = $('gauge-label');
+const stateResult = $('state-result');
+const gaugeArc = $('gauge-arc');
+const gaugePct = $('gauge-pct');
+const gaugeLabel = $('gauge-label');
 const resultPreviewImg = $('result-preview-img');
 const resultPreviewVid = $('result-preview-vid');
-const resultUrl      = $('result-url');
-const resultSource   = $('result-source');
-const btnClearResult     = $('btn-clear-result');
+const resultUrl = $('result-url');
+const resultSource = $('result-source');
+const btnClearResult = $('btn-clear-result');
 const btnClearResultScan = $('btn-clear-result-scan');
-const btnPick        = $('btn-pick');
-const btnUpload      = $('btn-upload');
-const fileInput      = $('file-input');
+const btnPick = $('btn-pick');
+const btnUpload = $('btn-upload');
+const fileInput = $('file-input');
 const btnAnalyzeUpload = $('btn-analyze-upload');
-const btnBatch       = $('btn-batch');
-const batchProgress  = $('batch-progress');
-const progressBar    = $('progress-bar');
-const progressLabel  = $('progress-label');
+const btnBatch = $('btn-batch');
+const batchProgress = $('batch-progress');
+const progressBar = $('progress-bar');
+const progressLabel = $('progress-label');
 const toggleProactive = $('toggle-proactive');
 const sensitivitySel = $('sensitivity-select');
 
 // Video tab
-const videoUrlInput        = $('video-url-input');
-const btnUploadVideo       = $('btn-upload-video');
-const videoFileInput       = $('video-file-input');
-const btnAnalyzeVideo      = $('btn-analyze-video');
-const videoStateEmpty      = $('video-state-empty');
-const videoStateLoading    = $('video-state-loading');
-const videoStateResult     = $('video-state-result');
-const videoStateError      = $('video-state-error');
-const videoStateTooLong    = $('video-state-toolong');
-const videoAnalysisBody    = $('video-analysis-body');
-const videoVerdictBadge    = $('video-verdict-badge');
-const videoResultSource    = $('video-result-source');
-const btnClearVideo        = $('btn-clear-video');
-const videoErrorText       = $('video-error-text');
-const videoDetectionRow    = $('video-detection-row');
-const videoDetectionBadge  = $('video-detection-badge');
-const videoDetectionScore  = $('video-detection-score');
-const videoFactcheckWrap   = $('video-factcheck-wrap');
-const videoTooLongText     = $('video-toolong-text');
-const btnDownloadClip      = $('btn-download-clip');
-const btnClearTooLong      = $('btn-clear-toolong');
+const videoUrlInput = $('video-url-input');
+const btnUploadVideo = $('btn-upload-video');
+const videoFileInput = $('video-file-input');
+const btnAnalyzeVideo = $('btn-analyze-video');
+const videoStateEmpty = $('video-state-empty');
+const videoStateLoading = $('video-state-loading');
+const videoStateResult = $('video-state-result');
+const videoStateError = $('video-state-error');
+const videoStateTooLong = $('video-state-toolong');
+const videoAnalysisBody = $('video-analysis-body');
+const videoVerdictBadge = $('video-verdict-badge');
+const videoResultSource = $('video-result-source');
+const btnClearVideo = $('btn-clear-video');
+const videoErrorText = $('video-error-text');
+const videoDetectionRow = $('video-detection-row');
+const videoDetectionBadge = $('video-detection-badge');
+const videoDetectionScore = $('video-detection-score');
+const videoFactcheckWrap = $('video-factcheck-wrap');
+const videoTooLongText = $('video-toolong-text');
+const btnDownloadClip = $('btn-download-clip');
+const btnClearTooLong = $('btn-clear-toolong');
 
 // History tab
-const historyList    = $('history-list');
-const historyEmpty   = $('history-empty');
+const historyList = $('history-list');
+const historyEmpty = $('history-empty');
 
 // Settings tab
-const apiKeyInput    = $('api-key-input');
-const endpointInput  = $('endpoint-input');
-const btnSaveKey     = $('btn-save-key');
+const apiKeyInput = $('api-key-input');
+const endpointInput = $('endpoint-input');
+const btnSaveKey = $('btn-save-key');
 const btnSaveEndpoint = $('btn-save-endpoint');
-const btnRecheck     = $('btn-recheck');
-const statusDot      = $('status-dot');
-const statusText     = $('status-text');
-const btnClearCache  = $('btn-clear-cache');
-const cacheFeedback  = $('cache-feedback');
-const connDot        = $('connection-dot');
+const btnRecheck = $('btn-recheck');
+const statusDot = $('status-dot');
+const statusText = $('status-text');
+const btnClearCache = $('btn-clear-cache');
+const cacheFeedback = $('cache-feedback');
+const connDot = $('connection-dot');
 
 // Gauge constants: path "M20,100 A80,80 0 0,1 180,100" → half-circle r=80 → length ≈ 251.2
 const GAUGE_LEN = 251.2;
@@ -127,11 +127,11 @@ async function loadSettings() {
   const { settings } = await msg({ action: 'getSettings' });
   if (!settings) return;
 
-  apiKeyInput.value     = settings.apiKey  ? '••••••••' : '';
-  endpointInput.value   = settings.endpoint || 'http://localhost:8000';
+  apiKeyInput.value = settings.apiKey ? '••••••••' : '';
+  endpointInput.value = settings.endpoint || 'http://localhost:8000';
 
   toggleProactive.setAttribute('aria-checked', String(!!settings.proactive));
-  sensitivitySel.value  = settings.sensitivity || 'medium';
+  sensitivitySel.value = settings.sensitivity || 'medium';
 }
 
 // ── Load last result ──────────────────────────────────────────────────────
@@ -166,6 +166,7 @@ function showPreviewOnly({ url, type }) {
   }
   previewOnlyUrl.textContent = url ? truncate(url, 48) : '';
   previewOnlyUrl.title = url || '';
+  btnAnalyzeUpload.disabled = !url;
 }
 
 //calculating trustworthy of page 
@@ -192,10 +193,10 @@ function showPreviewOnly({ url, type }) {
 // ── Result rendering ──────────────────────────────────────────────────────
 
 function showState(name) {
-  stateEmpty.hidden   = name !== 'empty';
+  stateEmpty.hidden = name !== 'empty';
   stateLoading.hidden = name !== 'loading';
   statePreview.hidden = name !== 'preview'; // TODO: remove when scanning is implemented
-  stateResult.hidden  = name !== 'result';
+  stateResult.hidden = name !== 'result';
 }
 
 function showResult({ score, label, cls, url, type, source }) {
@@ -223,8 +224,8 @@ function showResult({ score, label, cls, url, type, source }) {
   gaugeLabel.textContent = label;
   gaugeLabel.className = `gauge-label gauge-label--${cls}`;
 
-  resultUrl.textContent  = url ? truncate(url, 48) : '';
-  resultUrl.title        = url || '';
+  resultUrl.textContent = url ? truncate(url, 48) : '';
+  resultUrl.title = url || '';
   resultSource.textContent = source ? `via ${source}` : '';
 }
 
@@ -239,7 +240,7 @@ btnClearResultScan.addEventListener('click', async () => {
   await chrome.storage.local.remove('tl_last_result');
   pendingPick = null;
   pendingUploadFile = null;
-  btnAnalyzeUpload.disabled = true;
+  btnAnalyzeUpload.disabled = false;
   showState('empty');
 });
 
@@ -269,7 +270,9 @@ fileInput.addEventListener('change', () => {
 });
 
 btnAnalyzeUpload.addEventListener('click', async () => {
-  if (!pendingUploadFile) return;
+  const hasFile = !!pendingUploadFile;
+  const pendingUrl = previewOnlyUrl.title || '';
+  if (!hasFile && !pendingUrl) return;
 
   const settings = await msg({ action: 'getSettings' });
   const endpoint = settings.settings?.endpoint || 'http://localhost:8000';
@@ -278,33 +281,47 @@ btnAnalyzeUpload.addEventListener('click', async () => {
   btnAnalyzeUpload.disabled = true;
 
   try {
-    const form = new FormData();
-    form.append('file', pendingUploadFile, pendingUploadFile.name);
+    let json;
 
-    const res = await fetch(`${endpoint}/image/`, {
-      method: 'POST',
-      body: form,
-    });
+    if (hasFile) {
+      const form = new FormData();
+      form.append('file', pendingUploadFile, pendingUploadFile.name);
+      const res = await fetch(`${endpoint}/image/`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      json = await res.json();
+    } else {
+      const res = await fetch(`${endpoint}/image/url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: pendingUrl }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      json = await res.json();
+    }
 
-    if (!res.ok) throw new Error(`Server error ${res.status}`);
-    const json = await res.json();
-
-    // Normalize the aiornot response: score is 0-1 float
-    const raw = json.score ?? json.ai_probability ?? json.result?.score ?? 0;
-    const score = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
-    const { label, cls } = score < 40
+    const raw = json.report?.ai_generated?.ai?.confidence ?? json.score ?? json.ai_probability ?? json.result?.score ?? 0;
+    const aiScore = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
+    const score = 100 - aiScore;
+    const { label, cls } = score > 60
       ? { label: 'Likely Real', cls: 'green' }
-      : score < 70
+      : score > 30
         ? { label: 'Uncertain', cls: 'yellow' }
         : { label: 'Likely AI-Generated', cls: 'red' };
 
-    const dataUrl = await new Promise(resolve => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result);
-      r.readAsDataURL(pendingUploadFile);
-    });
+    let previewUrl = pendingUrl;
+    if (hasFile) {
+      previewUrl = await new Promise(resolve => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.readAsDataURL(pendingUploadFile);
+      });
+    }
 
-    showResult({ score, label, cls, url: dataUrl, type: pendingUploadFile.type.startsWith('video/') ? 'video' : 'image', source: 'backend' });
+    const type = hasFile
+      ? (pendingUploadFile.type.startsWith('video/') ? 'video' : 'image')
+      : 'image';
+
+    showResult({ score, label, cls, url: previewUrl, type, source: 'backend' });
     pendingUploadFile = null;
   } catch (err) {
     showState('preview');
@@ -389,15 +406,15 @@ sensitivitySel.addEventListener('change', () => {
 
 // ── Video Check ───────────────────────────────────────────────────────────
 
-let pendingVideoUrl  = '';
+let pendingVideoUrl = '';
 let pendingVideoFile = null; // File object for direct upload to /video
 
 function setVideoState(name) {
-  videoStateEmpty.hidden    = name !== 'empty';
-  videoStateLoading.hidden  = name !== 'loading';
-  videoStateResult.hidden   = name !== 'result';
-  videoStateError.hidden    = name !== 'error';
-  videoStateTooLong.hidden  = name !== 'toolong';
+  videoStateEmpty.hidden = name !== 'empty';
+  videoStateLoading.hidden = name !== 'loading';
+  videoStateResult.hidden = name !== 'result';
+  videoStateError.hidden = name !== 'error';
+  videoStateTooLong.hidden = name !== 'toolong';
 }
 
 videoUrlInput.addEventListener('input', () => {
@@ -524,8 +541,8 @@ function renderFactCheck({ verdict, explanation, factualityScore, claims, articl
   if (verdict) {
     const lv = verdict.toLowerCase();
     const cls = /false|misleading|inaccurate|fabricated/.test(lv) ? 'red'
-              : /uncertain|unverified|mixed|partial/.test(lv)      ? 'yellow'
-              : 'green';
+      : /uncertain|unverified|mixed|partial/.test(lv) ? 'yellow'
+        : 'green';
     videoVerdictBadge.textContent = verdict;
     videoVerdictBadge.className = `verdict-badge verdict-badge--${cls}`;
     videoVerdictBadge.hidden = false;
@@ -622,17 +639,40 @@ function buildHistoryItem({ url, type, score, label, cls, timestamp }) {
   const age = timeAgo(timestamp);
   const isImg = type !== 'video';
 
-  li.innerHTML = `
-    ${isImg
-      ? `<img class="history-thumb" src="${escAttr(url)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`
-      : `<div class="history-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px;">▶</div>`
-    }
-    <div class="history-info">
-      <div class="history-url" title="${escAttr(url)}">${truncate(url, 36)}</div>
-      <div class="history-time">${age}</div>
-    </div>
-    <span class="history-badge history-badge--${cls}">${score}%</span>
-  `;
+  if (isImg) {
+    const img = document.createElement('img');
+    img.className = 'history-thumb';
+    img.src = url;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
+    li.appendChild(img);
+  } else {
+    const thumb = document.createElement('div');
+    thumb.className = 'history-thumb';
+    thumb.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:18px;';
+    thumb.textContent = '▶';
+    li.appendChild(thumb);
+  }
+
+  const info = document.createElement('div');
+  info.className = 'history-info';
+  const urlDiv = document.createElement('div');
+  urlDiv.className = 'history-url';
+  urlDiv.title = url;
+  urlDiv.textContent = truncate(url, 36);
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'history-time';
+  timeDiv.textContent = age;
+  info.appendChild(urlDiv);
+  info.appendChild(timeDiv);
+  li.appendChild(info);
+
+  const badge = document.createElement('span');
+  badge.className = `history-badge history-badge--${cls}`;
+  badge.textContent = `${score}%`;
+  li.appendChild(badge);
+
   return li;
 }
 
@@ -713,7 +753,7 @@ function timeAgo(ts) {
   if (!ts) return '';
   const diff = Date.now() - ts;
   const s = Math.floor(diff / 1000);
-  if (s < 60)   return 'just now';
+  if (s < 60) return 'just now';
   if (s < 3600) return Math.floor(s / 60) + 'm ago';
   if (s < 86400) return Math.floor(s / 3600) + 'h ago';
   return Math.floor(s / 86400) + 'd ago';
