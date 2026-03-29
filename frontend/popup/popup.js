@@ -920,6 +920,15 @@ function showResult({ score, label, cls, url, type, source, summary }) {
 
 btnClearResult.addEventListener('click', async () => {
   await chrome.storage.local.remove('tl_last_result');
+  pendingPick = null;
+  pendingUploadFile = null;
+  previewOnlyImg.src = '';
+  previewOnlyVid.src = '';
+  previewOnlyUrl.textContent = '';
+  previewOnlyUrl.title = '';
+  resultPreviewImg.src = '';
+  resultPreviewVid.src = '';
+  btnAnalyzeUpload.disabled = true;
   showState('empty');
 });
 
@@ -927,7 +936,13 @@ btnClearResultScan.addEventListener('click', async () => {
   await chrome.storage.local.remove('tl_last_result');
   pendingPick = null;
   pendingUploadFile = null;
-  btnAnalyzeUpload.disabled = false;
+  previewOnlyImg.src = '';
+  previewOnlyVid.src = '';
+  previewOnlyUrl.textContent = '';
+  previewOnlyUrl.title = '';
+  resultPreviewImg.src = '';
+  resultPreviewVid.src = '';
+  btnAnalyzeUpload.disabled = true;
   showState('empty');
 });
 
@@ -943,8 +958,17 @@ btnCopyScan.addEventListener('click', () => {
   }).catch(() => { /* clipboard permission denied — silent */ });
 });
 
-btnClearImgGemini.addEventListener('click', () => {
+btnClearImgGemini.addEventListener('click', async () => {
+  await chrome.storage.local.remove('tl_last_result');
+  pendingPick = null;
   pendingUploadFile = null;
+  imgGeminiPreview.src = '';
+  imgGeminiPreview.hidden = true;
+  previewOnlyImg.src = '';
+  previewOnlyVid.src = '';
+  previewOnlyUrl.textContent = '';
+  previewOnlyUrl.title = '';
+  btnAnalyzeUpload.disabled = true;
   showState('empty');
 });
 
