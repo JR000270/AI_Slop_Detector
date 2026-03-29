@@ -301,6 +301,15 @@ body {
   margin-top: 4px;
 }
 
+.result-summary {
+  font-size: 11px;
+  color: var(--slate-mid);
+  text-align: center;
+  margin-top: 6px;
+  line-height: 1.4;
+  padding: 0 4px;
+}
+
 .result-source {
   font-size: 10px;
   color: var(--slate-muted);

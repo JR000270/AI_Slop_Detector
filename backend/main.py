@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
-from routes import text, video, factcheck
+from routes import text, video, factcheck, image
 
 app = FastAPI()
 app.include_router(text.router)
 app.include_router(video.router)
 app.include_router(factcheck.router)
+app.include_router(image.router)
 
 @app.get("/health")
 async def health_check():

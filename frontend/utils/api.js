@@ -95,7 +95,7 @@ function normalizeResult(json, source) {
   const score = 100 - aiScore; // invert: higher = more likely real
   console.log('[normalizeResult] raw:', raw, '→ aiScore:', aiScore, '→ realScore:', score, '| json:', JSON.stringify(json).slice(0, 200));
   const { label, cls } = classifyScore(score);
-  return { score, label, cls, source };
+  return { score, label, cls, source, summary: json.gemini_summary ?? null };
 }
 
 /** Direct AI-or-Not v2 API call used as fallback when backend is unreachable. */

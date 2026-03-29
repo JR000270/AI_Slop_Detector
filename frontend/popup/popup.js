@@ -198,7 +198,7 @@ function showState(name) {
   stateResult.hidden  = name !== 'result';
 }
 
-function showResult({ score, label, cls, url, type, source }) {
+function showResult({ score, label, cls, url, type, source, summary }) {
   showState('result');
 
   // Preview thumbnail
@@ -226,6 +226,12 @@ function showResult({ score, label, cls, url, type, source }) {
   resultUrl.textContent  = url ? truncate(url, 48) : '';
   resultUrl.title        = url || '';
   resultSource.textContent = source ? `via ${source}` : '';
+
+  const summaryEl = $('result-summary');
+  if (summaryEl) {
+    summaryEl.textContent = summary || '';
+    summaryEl.hidden = !summary;
+  }
 }
 
 // ── Clear result ──────────────────────────────────────────────────────────
