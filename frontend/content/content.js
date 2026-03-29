@@ -230,15 +230,14 @@
     } else if (state === 'result') {
       badge.classList.add(`tl-badge--${data.cls}`);
       badge.innerHTML = `<span class="tl-badge__pct">${data.score}%</span>`;
-      badge.title = `TruthLens: ${data.label} (${data.score}% AI probability)`;
-      badge.dataset.score   = data.score;
-      badge.dataset.label   = data.label;
-      badge.dataset.cls     = data.cls;
-      badge.dataset.summary = data.summary || '';
+      badge.title = `Slop-Detector: ${data.label} (${data.score}% AI probability)`;
+      badge.dataset.score  = data.score;
+      badge.dataset.label  = data.label;
+      badge.dataset.cls    = data.cls;
     } else if (state === 'error') {
       badge.classList.add('tl-badge--error');
       badge.innerHTML = '!';
-      badge.title = `TruthLens error: ${data.message}`;
+      badge.title = `Slop-Detector error: ${data.message}`;
     }
   }
 
@@ -268,7 +267,7 @@
 
     detail.innerHTML = `
       <button class="tl-detail__close" title="Close">✕</button>
-      <div class="tl-detail__logo">TruthLens</div>
+      <div class="tl-detail__logo">Slop-Detector</div>
       <div class="tl-detail__gauge">
         <svg viewBox="0 0 120 65" width="120" height="65" aria-hidden="true">
           <path d="M10,60 A50,50 0 0,1 110,60"

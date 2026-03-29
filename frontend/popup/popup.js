@@ -8,7 +8,12 @@
 const $ = id => document.getElementById(id);
 
 const tabs = document.querySelectorAll('.tab');
-const panels = { scan: $('tab-scan'), video: $('tab-video'), article: $('tab-article'), settings: $('tab-settings') };
+// Only include panels that actually exist in the DOM
+const panels = Object.fromEntries(
+  [['scan', 'tab-scan'], ['video', 'tab-video'], ['article', 'tab-article'], ['settings', 'tab-settings']]
+    .map(([key, id]) => [key, $(id)])
+    .filter(([, el]) => el !== null)
+);
 
 // Scan tab
 const stateEmpty       = $('state-empty');
@@ -176,11 +181,10 @@ async function loadSettings() {
   const { settings } = await msg({ action: 'getSettings' });
   if (!settings) return;
 
-  apiKeyInput.value = settings.apiKey ? '••••••••' : '';
-  endpointInput.value = settings.endpoint || 'http://localhost:8000';
-
-  toggleProactive.setAttribute('aria-checked', String(!!settings.proactive));
-  sensitivitySel.value = settings.sensitivity || 'medium';
+  if (apiKeyInput)    apiKeyInput.value    = settings.apiKey ? '••••••••' : '';
+  if (endpointInput)  endpointInput.value  = settings.endpoint || 'http://localhost:8000';
+  if (toggleProactive) toggleProactive.setAttribute('aria-checked', String(!!settings.proactive));
+  if (sensitivitySel)  sensitivitySel.value = settings.sensitivity || 'medium';
 }
 
 // ── Load last result ──────────────────────────────────────────────────────
@@ -1087,15 +1091,19 @@ btnBatch.addEventListener('click', async () => {
 
 // ── Proactive toggle ──────────────────────────────────────────────────────
 
-toggleProactive.addEventListener('click', async () => {
-  const next = toggleProactive.getAttribute('aria-checked') !== 'true';
-  toggleProactive.setAttribute('aria-checked', String(next));
-  await msg({ action: 'saveSettings', settings: { proactive: next } });
-});
+if (toggleProactive) {
+  toggleProactive.addEventListener('click', async () => {
+    const next = toggleProactive.getAttribute('aria-checked') !== 'true';
+    toggleProactive.setAttribute('aria-checked', String(next));
+    await msg({ action: 'saveSettings', settings: { proactive: next } });
+  });
+}
 
-sensitivitySel.addEventListener('change', () => {
-  msg({ action: 'saveSettings', settings: { sensitivity: sensitivitySel.value } });
-});
+if (sensitivitySel) {
+  sensitivitySel.addEventListener('change', () => {
+    msg({ action: 'saveSettings', settings: { sensitivity: sensitivitySel.value } });
+  });
+}
 
 // ── Video Check ───────────────────────────────────────────────────────────
 
@@ -1291,44 +1299,50 @@ function buildHistoryItem({ url, type, score, label, cls, timestamp }) {
 
 // ── Settings ──────────────────────────────────────────────────────────────
 
-btnSaveKey.addEventListener('click', async () => {
-  const key = apiKeyInput.value.trim();
-  if (!key || key === '••••••••') return;
-  await msg({ action: 'saveSettings', settings: { apiKey: key } });
-  apiKeyInput.value = '••••••••';
-  showFeedback(cacheFeedback, 'API key saved', false);
-});
+if (btnSaveKey) {
+  btnSaveKey.addEventListener('click', async () => {
+    const key = apiKeyInput.value.trim();
+    if (!key || key === '••••••••') return;
+    await msg({ action: 'saveSettings', settings: { apiKey: key } });
+    apiKeyInput.value = '••••••••';
+    showFeedback(cacheFeedback, 'API key saved', false);
+  });
+}
 
-btnSaveEndpoint.addEventListener('click', async () => {
-  const endpoint = endpointInput.value.trim();
-  if (!endpoint) return;
-  await msg({ action: 'saveSettings', settings: { endpoint } });
-  showFeedback(cacheFeedback, 'Endpoint saved', false);
-  checkConnection();
-});
+if (btnSaveEndpoint) {
+  btnSaveEndpoint.addEventListener('click', async () => {
+    const endpoint = endpointInput.value.trim();
+    if (!endpoint) return;
+    await msg({ action: 'saveSettings', settings: { endpoint } });
+    showFeedback(cacheFeedback, 'Endpoint saved', false);
+    checkConnection();
+  });
+}
 
-btnRecheck.addEventListener('click', checkConnection);
+if (btnRecheck) btnRecheck.addEventListener('click', checkConnection);
 
 async function checkConnection() {
-  setDot(statusDot, 'unknown');
-  setDot(connDot, 'unknown');
-  statusText.textContent = 'Checking…';
+  if (statusDot) setDot(statusDot, 'unknown');
+  if (connDot)   setDot(connDot,   'unknown');
+  if (statusText) statusText.textContent = 'Checking…';
 
   const { connected } = await msg({ action: 'checkConnection' });
   const state = connected ? 'connected' : 'disconnected';
-  setDot(statusDot, state);
-  setDot(connDot, state);
-  statusText.textContent = connected ? 'Connected' : 'Offline';
+  if (statusDot) setDot(statusDot, state);
+  if (connDot)   setDot(connDot,   state);
+  if (statusText) statusText.textContent = connected ? 'Connected' : 'Offline';
 }
 
-btnClearCache.addEventListener('click', async () => {
-  const { cleared, error } = await msg({ action: 'clearCache' });
-  if (error) {
-    showFeedback(cacheFeedback, error, true);
-  } else {
-    showFeedback(cacheFeedback, `Cleared ${cleared} cached result${cleared !== 1 ? 's' : ''}`, false);
-  }
-});
+if (btnClearCache) {
+  btnClearCache.addEventListener('click', async () => {
+    const { cleared, error } = await msg({ action: 'clearCache' });
+    if (error) {
+      showFeedback(cacheFeedback, error, true);
+    } else {
+      showFeedback(cacheFeedback, `Cleared ${cleared} cached result${cleared !== 1 ? 's' : ''}`, false);
+    }
+  });
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -1352,7 +1366,7 @@ function msg(payload, _attempt = 0) {
 
 function setDot(el, state) {
   el.className = `dot dot--${state}`;
-  el.title = `OpenClaw ${state}`;
+  el.title = `Slop-Detector ${state}`;
 }
 
 function showFeedback(el, text, isError) {
