@@ -2,6 +2,16 @@
 
 A cross-browser extension + local backend for detecting AI-generated images, videos, and articles — with built-in fact-checking powered by Google Gemini and web search grounding.
 
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Chrome Extension](https://img.shields.io/badge/Chrome%20Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+
+![Demo](demo.gif)
+
 ## Overview
 
 AI-generated media is increasingly realistic and widespread. Slop-Detector gives users instant, on-demand detection scores and fact-checks for any image, video, or article — right from their browser. It combines the AI-or-Not API for confidence scoring with Gemini-powered analysis for deeper inspection, running everything through a local FastAPI backend so API keys never touch the browser.
