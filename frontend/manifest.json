@@ -46,5 +46,14 @@
     "16": "assets/icons/icon16.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
+  },
+  "commands": {
+  "_execute_action": {
+    "suggested_key": {
+      "default": "Ctrl+Shift+S",
+      "mac": "Command+Shift+S"
+    },
+    "description": "Open Slop or Not popup"
   }
+}
 }
