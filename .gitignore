@@ -1,3 +1,2 @@
 backend/apikeys.env
-backend/__pycache__/
-*.pyc
+backend/__pycache__/*
