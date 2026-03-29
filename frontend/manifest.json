@@ -53,7 +53,7 @@
         "default": "Ctrl+Shift+U",
         "mac": "Command+Shift+U"
       },
-      "description": "Open Slop or Not popup"
+      "description": "Open Slop-Detector popup"
     }
   }
 }
