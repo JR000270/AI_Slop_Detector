@@ -1408,7 +1408,7 @@ function msg(payload, _attempt = 0) {
 
 function setDot(el, state) {
   el.className = `dot dot--${state}`;
-  el.title = `Slop-Detector ${state}`;
+  el.title = `slop-detector ${state}`;
 }
 
 function showFeedback(el, text, isError) {

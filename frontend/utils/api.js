@@ -28,13 +28,13 @@ function classifyScore(score) {
 }
 
 /**
- * Send one media URL to the Slop-Detector local backend, falling back to a
+ * Send one media URL to the slop-detector local backend, falling back to a
  * configurable direct endpoint if the backend is unreachable.
  *
  * @param {string} url        Public URL of the image / video
  * @param {'image'|'video'}  type
  * @param {string} apiKey     User's AI-or-Not API key
- * @param {string} endpoint   Slop-Detector backend endpoint (configurable)
+ * @param {string} endpoint   slop-detector backend endpoint (configurable)
  * @returns {Promise<{score:number, label:string, cls:string, source:'backend'|'direct'|'cached'}>}
  */
 async function analyzeMedia(url, type, apiKey, endpoint = DEFAULT_ENDPOINT) {

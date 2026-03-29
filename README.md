@@ -1,4 +1,4 @@
-# Slop-Detector
+# slop-detector
 
 A cross-browser extension + local backend for detecting AI-generated images, videos, and articles — with built-in fact-checking powered by Google Gemini and web search grounding.
 
@@ -14,7 +14,7 @@ A cross-browser extension + local backend for detecting AI-generated images, vid
 
 ## Overview
 
-AI-generated media is increasingly realistic and widespread. Slop-Detector gives users instant, on-demand detection scores and fact-checks for any image, video, or article — right from their browser. It combines the AI-or-Not API for confidence scoring with Gemini-powered analysis for deeper inspection, running everything through a local FastAPI backend so API keys never touch the browser.
+AI-generated media is increasingly realistic and widespread. slop-detector gives users instant, on-demand detection scores and fact-checks for any image, video, or article — right from their browser. It combines the AI-or-Not API for confidence scoring with Gemini-powered analysis for deeper inspection, running everything through a local FastAPI backend so API keys never touch the browser.
 
 **Target users:** Journalists, researchers, educators, fact-checkers, and anyone who wants to verify the authenticity of online media.
 
