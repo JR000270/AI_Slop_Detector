@@ -83,13 +83,10 @@ const GAUGE_LEN = 251.2;
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.tl_last_result) {
     const result = changes.tl_last_result.newValue;
-    console.log('[storage.onChanged] tl_last_result updated:', JSON.stringify(result));
     if (!result) return;
     if (result.score != null) {
-      console.log('[storage.onChanged] showing result, score:', result.score);
       showResult(result);
     } else {
-      console.log('[storage.onChanged] score is null, showing preview only');
       showPreviewOnly(result);
     }
   }
@@ -143,6 +140,7 @@ async function loadLastResult() {
   }
 }
 
+// TODO: remove this function when scanning is implemented
 function showPreviewOnly({ url, type }) {
   showState('preview');
   const isVideo = type === 'video';
@@ -150,18 +148,34 @@ function showPreviewOnly({ url, type }) {
   previewOnlyVid.hidden = !isVideo;
   if (isVideo) {
     previewOnlyVid.src = url || '';
+    previewOnlyVid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
   } else {
     previewOnlyImg.src = url || '';
+    previewOnlyImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
   }
   previewOnlyUrl.textContent = url ? truncate(url, 48) : '';
   previewOnlyUrl.title = url || '';
+}
 
-  // Enable Analyze for page-grabbed HTTP(S) URLs
-  if (url && !url.startsWith('data:')) {
-    pendingPick = { url, type };
-    pendingUploadFile = null;
-    btnAnalyzeUpload.disabled = false;
-  }
+//calculating trustworthy of page 
+function calcDomainTrust(scores) {
+  if (!scores.length) return null;
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  if (avg < 30) return { rating: 'Trustworthy',   cls: 'green',  avg: Math.round(avg) };
+  if (avg < 60) return { rating: 'Mixed Content',  cls: 'yellow', avg: Math.round(avg) };
+  return        { rating: 'Untrustworthy',          cls: 'red',    avg: Math.round(avg) };
+}
+
+//display function
+function showDomainTrust(trust) {
+  const el = $('domain-trust');
+  if (!el || !trust) return;
+  el.hidden = false;
+  el.innerHTML = `
+    <span>Domain Trust:</span>
+    <strong class="gauge-label--${trust.cls}">${trust.rating}</strong>
+    <span style="color:#888; font-size:11px">(avg ${trust.avg}% AI across page)</span>
+  `;
 }
 
 // ── Result rendering ──────────────────────────────────────────────────────
@@ -213,7 +227,6 @@ btnClearResult.addEventListener('click', async () => {
 // ── Upload from device ────────────────────────────────────────────────────
 
 let pendingUploadFile = null; // File object held for the Analyze button
-let pendingPick = null;       // { url, type } for page-grabbed images
 
 btnUpload.addEventListener('click', () => fileInput.click());
 
@@ -226,7 +239,6 @@ fileInput.addEventListener('change', () => {
 
   const reader = new FileReader();
   reader.onload = () => {
-    pendingPick = null;
     pendingUploadFile = file;
     btnAnalyzeUpload.disabled = false;
     showPreviewOnly({ url: reader.result, type });
@@ -237,68 +249,10 @@ fileInput.addEventListener('change', () => {
 });
 
 btnAnalyzeUpload.addEventListener('click', async () => {
-  console.log('[Analyze] clicked — pendingPick:', pendingPick, '| pendingUploadFile:', pendingUploadFile);
-
-  // ── Page-grabbed URL ──────────────────────────────────────────────────────
-  if (pendingPick) {
-    const { url, type } = pendingPick;
-    pendingPick = null;
-    showState('loading');
-    btnAnalyzeUpload.disabled = true;
-
-    // Read settings directly from storage — bypasses service worker (avoids
-    // Firefox SW termination dropping the response mid-fetch).
-    const endpoint = await new Promise(resolve =>
-      chrome.storage.local.get('tl_settings', r =>
-        resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
-      )
-    );
-
-    console.log('[Analyze] calling backend directly:', endpoint + '/image/url', '| url:', url);
-
-    try {
-      const res = await fetch(`${endpoint}/image/url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-
-      console.log('[Analyze] response status:', res.status);
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const json = await res.json();
-      console.log('[Analyze] response JSON:', json);
-
-      const raw = json.report?.ai_generated?.ai?.confidence ?? json.score ?? json.ai_probability ?? json.result?.score ?? 0;
-      const aiScore = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
-      const score = 100 - aiScore; // invert: higher = more likely real
-      console.log('[Analyze] raw:', raw, '→ aiScore:', aiScore, '→ realScore:', score);
-      const { label, cls } = score > 60
-        ? { label: 'Likely Real', cls: 'green' }
-        : score > 30
-          ? { label: 'Uncertain', cls: 'yellow' }
-          : { label: 'Likely AI-Generated', cls: 'red' };
-
-      showResult({ score, label, cls, url, type, source: 'backend' });
-      chrome.storage.local.set({ tl_last_result: { url, type, score, label, cls, source: 'backend' } });
-    } catch (err) {
-      console.error('[Analyze] fetch failed:', err);
-      pendingPick = { url, type };
-      showPreviewOnly({ url, type });
-      previewOnlyUrl.textContent = err.message;
-      btnAnalyzeUpload.disabled = false;
-    }
-    return;
-  }
-
-  // ── Uploaded file ─────────────────────────────────────────────────────────
-  if (!pendingUploadFile) {
-    console.warn('[Analyze] no pending pick or file — nothing to analyze');
-    return;
-  }
+  if (!pendingUploadFile) return;
 
   const settings = await msg({ action: 'getSettings' });
   const endpoint = settings.settings?.endpoint || 'http://localhost:8000';
-  console.log('[Analyze] uploading file to endpoint:', endpoint, '| file:', pendingUploadFile.name);
 
   showState('loading');
   btnAnalyzeUpload.disabled = true;
@@ -312,18 +266,15 @@ btnAnalyzeUpload.addEventListener('click', async () => {
       body: form,
     });
 
-    console.log('[Analyze] upload response status:', res.status);
     if (!res.ok) throw new Error(`Server error ${res.status}`);
     const json = await res.json();
-    console.log('[Analyze] upload response JSON:', json);
 
-    const raw = json.report?.ai_generated?.ai?.confidence ?? json.score ?? json.ai_probability ?? json.result?.score ?? 0;
-    const aiScore = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
-    const score = 100 - aiScore; // invert: higher = more likely real
-    console.log('[Analyze] raw:', raw, '→ aiScore:', aiScore, '→ realScore:', score);
-    const { label, cls } = score > 60
+    // Normalize the aiornot response: score is 0-1 float
+    const raw = json.score ?? json.ai_probability ?? json.result?.score ?? 0;
+    const score = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
+    const { label, cls } = score < 40
       ? { label: 'Likely Real', cls: 'green' }
-      : score > 30
+      : score < 70
         ? { label: 'Uncertain', cls: 'yellow' }
         : { label: 'Likely AI-Generated', cls: 'red' };
 
@@ -333,11 +284,9 @@ btnAnalyzeUpload.addEventListener('click', async () => {
       r.readAsDataURL(pendingUploadFile);
     });
 
-    const fileType = pendingUploadFile.type.startsWith('video/') ? 'video' : 'image';
+    showResult({ score, label, cls, url: dataUrl, type: pendingUploadFile.type.startsWith('video/') ? 'video' : 'image', source: 'backend' });
     pendingUploadFile = null;
-    showResult({ score, label, cls, url: dataUrl, type: fileType, source: 'backend' });
   } catch (err) {
-    console.error('[Analyze] upload failed:', err);
     showState('preview');
     previewOnlyUrl.textContent = err.message;
     btnAnalyzeUpload.disabled = false;
@@ -348,18 +297,16 @@ btnAnalyzeUpload.addEventListener('click', async () => {
 
 btnPick.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
+  if (!tab) return;
 
-  // Inject content script in case the page was open before the extension loaded.
-  // The path error in Firefox is caught and ignored — manifest already covers pages
-  // loaded after the extension, so sendMessage still works in that case.
+  // Ensure content script is present (e.g. on pages opened before install)
   try {
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content/content.js'] });
-    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ['content/content.css'] });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content/content.js'] });
+    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ['/content/content.css'] });
   } catch { /* already injected or restricted page */ }
 
-  await chrome.tabs.sendMessage(tab.id, { action: 'startSelection' }).catch(() => {});
-  window.close();
+  chrome.tabs.sendMessage(tab.id, { action: 'startSelection' });
+  // No window.close() — panel/window stays open so the result appears here automatically
 });
 
 // ── Batch scan ────────────────────────────────────────────────────────────
@@ -373,9 +320,12 @@ btnBatch.addEventListener('click', async () => {
   progressBar.style.width = '0%';
   progressLabel.textContent = 'Starting scan…';
 
+  const scores = [];
+
   // Listen for progress updates from background
   const onProgress = (message) => {
     if (message.action !== 'batchProgress') return;
+    if(message.score != null) scores.push(message.score);
     const { done, total } = message;
     const pct = total ? Math.round((done / total) * 100) : 0;
     progressBar.style.width = pct + '%';
@@ -389,6 +339,7 @@ btnBatch.addEventListener('click', async () => {
     chrome.runtime.onMessage.removeListener(onProgress);
     btnBatch.disabled = false;
     progressLabel.textContent = 'Scan complete';
+    showDomainTrust(calcDomainTrust(scores))
     setTimeout(() => { batchProgress.hidden = true; }, 2500);
   };
 
