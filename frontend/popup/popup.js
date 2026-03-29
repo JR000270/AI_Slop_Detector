@@ -91,7 +91,8 @@ const historyEmpty = $('history-empty');
 const articleTextarea       = $('article-textarea');
 const articleCharHint       = $('article-char-hint');
 const btnGrabPage           = $('btn-grab-page');
-const btnAnalyzeArticle     = $('btn-analyze-article');
+const btnDetectArticle      = $('btn-detect-article');
+const btnFactcheckArticle   = $('btn-factcheck-article');
 const articleStateEmpty     = $('article-state-empty');
 const articleStateLoading   = $('article-state-loading');
 const articleLoadingMsg     = $('article-loading-msg');
@@ -324,22 +325,28 @@ function stopScanLoadingCycle() {
 
 // ── Article Check ─────────────────────────────────────────────────────────
 
-const ARTICLE_LOADING_MSGS = [
+const ARTICLE_DETECT_MSGS = [
   'Analyzing text…',
   'Detecting AI patterns…',
+  'Almost done…',
+];
+
+const ARTICLE_FACTCHECK_MSGS = [
+  'Analyzing text…',
   'Extracting claims…',
   'Searching the web…',
   'Fact-checking claims…',
   'Almost done…',
 ];
+
 let _articleLoadingTimer = null;
 
-function startArticleLoadingCycle() {
+function startArticleLoadingCycle(msgs) {
   let i = 0;
-  articleLoadingMsg.textContent = ARTICLE_LOADING_MSGS[0];
+  articleLoadingMsg.textContent = msgs[0];
   _articleLoadingTimer = setInterval(() => {
-    i = (i + 1) % ARTICLE_LOADING_MSGS.length;
-    articleLoadingMsg.textContent = ARTICLE_LOADING_MSGS[i];
+    i = (i + 1) % msgs.length;
+    articleLoadingMsg.textContent = msgs[i];
   }, 2500);
 }
 
@@ -496,11 +503,28 @@ function showArticleResult(aiResult, fcResult) {
 
 // ── Textarea char counter ─────────────────────────────────────────────────
 
+const ARTICLE_AI_MIN = 250;
+
+function _setArticleBtns(disabled) {
+  btnDetectArticle.disabled    = disabled;
+  btnFactcheckArticle.disabled = disabled;
+}
+
+function _updateArticleBtns() {
+  const len = articleTextarea.value.trim().length;
+  btnDetectArticle.disabled    = len < ARTICLE_AI_MIN;
+  btnFactcheckArticle.disabled = len === 0;
+}
+
 articleTextarea.addEventListener('input', () => {
   const len = articleTextarea.value.length;
-  articleCharHint.textContent = `${len.toLocaleString()} / 15 000 chars`;
+  const belowMin = len > 0 && len < ARTICLE_AI_MIN;
+  articleCharHint.textContent = belowMin
+    ? `${len.toLocaleString()} / 15 000 chars  ·  ${ARTICLE_AI_MIN - len} more needed for AI detection`
+    : `${len.toLocaleString()} / 15 000 chars`;
   articleCharHint.classList.toggle('art-char-hint--warn', len > 12000);
-  btnAnalyzeArticle.disabled = len === 0;
+  articleCharHint.classList.toggle('art-char-hint--min', belowMin);
+  _updateArticleBtns();
 });
 
 // ── Grab current page ─────────────────────────────────────────────────────
@@ -559,50 +583,65 @@ btnGrabPage.addEventListener('click', async () => {
   }
 });
 
-// ── Analyze article ───────────────────────────────────────────────────────
+// ── Detect AI (AI-or-Not) ─────────────────────────────────────────────────
 
-btnAnalyzeArticle.addEventListener('click', async () => {
+btnDetectArticle.addEventListener('click', async () => {
   const text = articleTextarea.value.trim();
   if (!text) return;
 
   const settings = await msg({ action: 'getSettings' });
   const endpoint = settings.settings?.endpoint || 'http://localhost:8000';
 
-  btnAnalyzeArticle.disabled = true;
+  _setArticleBtns(true);
   setArticleState('loading');
-  startArticleLoadingCycle();
+  startArticleLoadingCycle(ARTICLE_DETECT_MSGS);
 
   try {
-    // Run AI detection and fact-check in parallel
-    const [aiRes, fcRes] = await Promise.allSettled([
-      fetch(`${endpoint}/text/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      }).then(r => { if (!r.ok) throw new Error(`AI detection error ${r.status}`); return r.json(); }),
-
-      fetch(`${endpoint}/factcheck/text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      }).then(r => { if (!r.ok) throw new Error(`Fact-check error ${r.status}`); return r.json(); }),
-    ]);
-
-    // At least one must succeed
-    if (aiRes.status === 'rejected' && fcRes.status === 'rejected') {
-      throw new Error(aiRes.reason?.message || 'Analysis failed');
-    }
-
-    showArticleResult(
-      aiRes.status === 'fulfilled' ? aiRes.value : null,
-      fcRes.status === 'fulfilled' ? fcRes.value : null,
-    );
+    const r = await fetch(`${endpoint}/text/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!r.ok) throw new Error(`AI detection error ${r.status}`);
+    const aiResult = await r.json();
+    showArticleResult(aiResult, null);
   } catch (err) {
     stopArticleLoadingCycle();
-    articleErrorText.textContent = err.message || 'Analysis failed. Is the backend running?';
+    articleErrorText.textContent = err.message || 'AI detection failed. Is the backend running?';
     setArticleState('error');
   } finally {
-    btnAnalyzeArticle.disabled = false;
+    _updateArticleBtns();
+  }
+});
+
+// ── Fact Check (Gemini) ───────────────────────────────────────────────────
+
+btnFactcheckArticle.addEventListener('click', async () => {
+  const text = articleTextarea.value.trim();
+  if (!text) return;
+
+  const settings = await msg({ action: 'getSettings' });
+  const endpoint = settings.settings?.endpoint || 'http://localhost:8000';
+
+  _setArticleBtns(true);
+  setArticleState('loading');
+  startArticleLoadingCycle(ARTICLE_FACTCHECK_MSGS);
+
+  try {
+    const r = await fetch(`${endpoint}/factcheck/text`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!r.ok) throw new Error(`Fact-check error ${r.status}`);
+    const fcResult = await r.json();
+    showArticleResult(null, fcResult);
+  } catch (err) {
+    stopArticleLoadingCycle();
+    articleErrorText.textContent = err.message || 'Fact-check failed. Is the backend running?';
+    setArticleState('error');
+  } finally {
+    _updateArticleBtns();
   }
 });
 
@@ -658,7 +697,7 @@ btnClearArticle.addEventListener('click', () => {
   articleTextarea.value = '';
   articleCharHint.textContent = '0 / 15 000 chars';
   articleCharHint.classList.remove('art-char-hint--warn');
-  btnAnalyzeArticle.disabled = true;
+  _setArticleBtns(true);
   setArticleState('empty');
 });
 
