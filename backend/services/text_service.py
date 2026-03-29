@@ -5,7 +5,13 @@ from helper import get_gemini_api_key
 from fastapi import HTTPException
 from google import genai
 
-gemini_client = genai.Client(api_key=get_gemini_api_key())
+_gemini_client = None
+
+def _get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        _gemini_client = genai.Client(api_key=get_gemini_api_key())
+    return _gemini_client
 
 ANALYSIS_PROMPT = """
 You are a fact-checking assistant. Analyze the following webpage text and return a JSON object with exactly these fields:
@@ -43,7 +49,7 @@ async def analyze_text(text: str) -> dict:
         text = text[:20000]
 
     try:
-        response = gemini_client.models.generate_content(
+        response = _get_gemini_client().models.generate_content(
             model="gemini-2.5-flash",
             contents=ANALYSIS_PROMPT + text
         )

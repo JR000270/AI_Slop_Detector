@@ -8,6 +8,9 @@
   padding: 0;
 }
 
+/* Ensure the HTML hidden attribute always wins over any display: value in CSS */
+[hidden] { display: none !important; }
+
 :root {
   --primary: #8C5E4A;
   --primary-hover: #7A5040;
@@ -57,7 +60,7 @@ body {
   font: 13px/1.5 system-ui, -apple-system, sans-serif;
   color: var(--slate);
   background: var(--bg);
-  width: 340px;
+  width: 380px;
   min-height: 200px;
   overflow-x: hidden;
 }
@@ -280,7 +283,7 @@ body {
   display: hidden;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 
@@ -855,4 +858,343 @@ body {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border);
+}
+
+/* ── Video tab: empty state ──────────────────────────────────────────────── */
+
+.vid-empty {
+  padding: 18px 0 10px;
+}
+
+.vid-empty__icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+/* ── Video tab: loading state ────────────────────────────────────────────── */
+
+.vid-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0 18px;
+  gap: 14px;
+}
+
+.vid-spinner svg {
+  animation: vid-spin 0.9s linear infinite;
+  display: block;
+}
+
+@keyframes vid-spin {
+  to { transform: rotate(360deg); }
+}
+
+.vid-loading__msg {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate-mid);
+  letter-spacing: 0.01em;
+}
+
+/* ── Video result cards ──────────────────────────────────────────────────── */
+
+.vcard {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+
+.vcard__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  background: var(--primary-light);
+}
+
+.vcard__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.vcard__icon--ai   { background: #6366F1; }
+.vcard__icon--fact { background: var(--primary); }
+
+@media (prefers-color-scheme: dark) {
+  .vcard__icon--ai { background: #818CF8; }
+}
+
+.vcard__title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  flex: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.vcard__divider {
+  height: 1px;
+  background: var(--border);
+}
+
+.vcard__body {
+  padding: 10px 13px;
+}
+
+.vcard__body-text {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--slate-mid);
+  padding: 10px 13px;
+  margin: 0;
+  word-break: break-word;
+}
+
+.vcard__body .vcard__body-text {
+  padding: 0;
+  margin-bottom: 10px;
+}
+
+.vcard__body .vcard__body-text:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Claim rows ──────────────────────────────────────────────────────────── */
+
+.vclaims {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+}
+
+.vclaim {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 9px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.vclaim__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.vclaim__dot--green   { background: var(--green); }
+.vclaim__dot--yellow  { background: var(--yellow); }
+.vclaim__dot--red     { background: var(--red); }
+.vclaim__dot--unknown { background: var(--slate-muted); }
+
+.vclaim__text {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--slate-mid);
+  flex: 1;
+}
+
+.vclaim__verdict {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.vclaim__verdict--green  { background: var(--green-bg);  color: var(--green); }
+.vclaim__verdict--yellow { background: var(--yellow-bg); color: var(--yellow); }
+.vclaim__verdict--red    { background: var(--red-bg);    color: var(--red); }
+.vclaim__verdict--unknown {
+  background: var(--surface);
+  color: var(--slate-muted);
+  border: 1px solid var(--border);
+}
+
+/* ── Raw text fallback ───────────────────────────────────────────────────── */
+
+.vraw {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.vraw__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--slate-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.vraw__text {
+  font: 11.5px/1.65 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color: var(--slate-mid);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+}
+
+/* ── Result footer ───────────────────────────────────────────────────────── */
+
+.vid-result-footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+/* ── Error state ─────────────────────────────────────────────────────────── */
+
+.vid-error {
+  text-align: center;
+  padding: 16px 0 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.vid-error__text {
+  font-size: 12px;
+  color: var(--red);
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+/* ── Scan tab styles ─────────────────────────────────────────────────────── */
+
+.sc-empty {
+  padding: 18px 0 10px;
+}
+
+.sc-empty__icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+/* Preview state */
+.sc-preview-wrap {
+  width: 100%;
+  height: 150px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.sc-preview-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.sc-preview-url {
+  font-size: 11px;
+  color: var(--slate-muted);
+  text-align: center;
+  word-break: break-all;
+  margin-bottom: 10px;
+}
+
+.sc-preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Thumbnail above result card */
+.sc-thumb-wrap {
+  width: 100%;
+  height: 140px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* Result card sits flush under the thumbnail */
+.sc-result-card {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Gauge section inside result card */
+.sc-gauge-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px 4px;
+}
+
+/* Footer row inside result card */
+.sc-result-footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* Action buttons — 2-column grid */
+.sc-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.sc-action-btn {
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 6px;
+  font-size: 11.5px;
+  height: auto;
 }

@@ -1,12 +1,16 @@
+import asyncio
+import io
 import httpx
 import json
 import subprocess
 from fastapi import HTTPException
+from google import genai
+from google.genai import types
 
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from helper import get_ai_or_not_api_key
+from helper import get_ai_or_not_api_key, get_gemini_api_key
 
 API_KEY = get_ai_or_not_api_key()
 VIDEO_ENDPOINT = "https://api.aiornot.com/v2/video/sync"
@@ -95,3 +99,112 @@ async def analyze_video_from_url(url: str):
         )
         response.raise_for_status()
         return response.json()
+
+
+# ── Gemini video analysis ─────────────────────────────────────────────────────
+
+_gemini_client = None
+
+def _get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        _gemini_client = genai.Client(api_key=get_gemini_api_key())
+    return _gemini_client
+
+_VIDEO_PROMPT = """\
+Analyze this video carefully. Respond using EXACTLY the following format — \
+no extra headings, no markdown, no preamble:
+
+AI DETECTION: <Yes / No / Uncertain> — <one sentence explaining the visual or audio evidence>
+
+FACT CHECK:
+Verdict: <True / False / Misleading / Unverified>
+Summary: <2-3 sentences: what specific claims does the video make, and are they accurate?>
+Claims:
+• <exact claim from video> — <True / False / Uncertain>
+• <exact claim from video> — <True / False / Uncertain>
+• <exact claim from video> — <True / False / Uncertain>
+
+RULES:
+- Output ONLY the above structure. Do not add extra text before or after.
+- If the video makes no specific verifiable claims, write one Claims bullet: \
+"No specific verifiable claims detected — N/A"
+- Use the em dash (—) as the separator between a claim and its verdict.
+- Limit claims to the 3 most important ones.
+"""
+
+
+async def _poll_until_active(name: str):
+    for _ in range(20):
+        info = await asyncio.to_thread(_get_gemini_client().files.get, name=name)
+        if info.state and info.state.name == "ACTIVE":
+            return
+        await asyncio.sleep(2)
+
+
+async def analyze_video_with_gemini(file) -> str:
+    contents = await file.read()
+    uploaded = await asyncio.to_thread(
+        _get_gemini_client().files.upload,
+        file=io.BytesIO(contents),
+        config=types.UploadFileConfig(
+            mime_type=file.content_type or "video/mp4",
+            display_name=file.filename or "video.mp4",
+        ),
+    )
+    try:
+        await _poll_until_active(uploaded.name)
+        response = await asyncio.to_thread(
+            _get_gemini_client().models.generate_content,
+            model="gemini-2.5-flash",
+            contents=types.Content(parts=[
+                types.Part(file_data=types.FileData(file_uri=uploaded.uri)),
+                types.Part(text=_VIDEO_PROMPT),
+            ]),
+        )
+        return response.text.strip()
+    finally:
+        await asyncio.to_thread(_get_gemini_client().files.delete, name=uploaded.name)
+
+
+async def analyze_video_url_with_gemini(url: str) -> str:
+    is_youtube = "youtube.com" in url or "youtu.be" in url
+
+    if is_youtube:
+        response = await asyncio.to_thread(
+            _get_gemini_client().models.generate_content,
+            model="gemini-2.5-flash",
+            contents=types.Content(parts=[
+                types.Part(file_data=types.FileData(file_uri=url)),
+                types.Part(text=_VIDEO_PROMPT),
+            ]),
+        )
+        return response.text.strip()
+
+    async with httpx.AsyncClient(follow_redirects=True, timeout=60.0) as client:
+        try:
+            resp = await client.get(url)
+            resp.raise_for_status()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Could not fetch video from URL")
+
+    content_type = resp.headers.get("content-type", "video/mp4")
+    filename = url.split("?")[0].split("/")[-1] or "video.mp4"
+    uploaded = await asyncio.to_thread(
+        _get_gemini_client().files.upload,
+        file=io.BytesIO(resp.content),
+        config=types.UploadFileConfig(mime_type=content_type, display_name=filename),
+    )
+    try:
+        await _poll_until_active(uploaded.name)
+        response = await asyncio.to_thread(
+            _get_gemini_client().models.generate_content,
+            model="gemini-2.5-flash",
+            contents=types.Content(parts=[
+                types.Part(file_data=types.FileData(file_uri=uploaded.uri)),
+                types.Part(text=_VIDEO_PROMPT),
+            ]),
+        )
+        return response.text.strip()
+    finally:
+        await asyncio.to_thread(_get_gemini_client().files.delete, name=uploaded.name)

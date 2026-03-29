@@ -7,76 +7,82 @@
 
 const $ = id => document.getElementById(id);
 
-const tabs           = document.querySelectorAll('.tab');
-const panels         = { scan: $('tab-scan'), video: $('tab-video'), history: $('tab-history'), settings: $('tab-settings') };
+const tabs = document.querySelectorAll('.tab');
+const panels = { scan: $('tab-scan'), video: $('tab-video'), settings: $('tab-settings') };
 
 // Scan tab
-const stateEmpty     = $('state-empty');
-const stateLoading   = $('state-loading');
-// TODO: remove statePreview when scanning is implemented
-const statePreview   = $('state-preview');
-const previewOnlyImg = $('preview-only-img');
-const previewOnlyVid = $('preview-only-vid');
-const previewOnlyUrl = $('preview-only-url');
-const stateResult    = $('state-result');
-const gaugeArc       = $('gauge-arc');
-const gaugePct       = $('gauge-pct');
-const gaugeLabel     = $('gauge-label');
+const stateEmpty       = $('state-empty');
+const stateLoading     = $('state-loading');
+const scanLoadingMsg   = $('scan-loading-msg');
+const statePreview     = $('state-preview');
+const previewOnlyImg   = $('preview-only-img');
+const previewOnlyVid   = $('preview-only-vid');
+const previewOnlyUrl   = $('preview-only-url');
+const stateResult      = $('state-result');
+const gaugeArc         = $('gauge-arc');
+const gaugePct         = $('gauge-pct');
+const gaugeLabel       = $('gauge-label');
+const resultBadge      = $('result-badge');
 const resultPreviewImg = $('result-preview-img');
 const resultPreviewVid = $('result-preview-vid');
-const resultUrl      = $('result-url');
-const resultSource   = $('result-source');
-const btnClearResult     = $('btn-clear-result');
+const resultUrl        = $('result-url');
+const resultSource     = $('result-source');
+const btnClearResult   = $('btn-clear-result');
 const btnClearResultScan = $('btn-clear-result-scan');
-const btnPick        = $('btn-pick');
-const btnUpload      = $('btn-upload');
-const fileInput      = $('file-input');
+const btnCopyScan      = $('btn-copy-scan');
+const btnPick          = $('btn-pick');
+const btnUpload        = $('btn-upload');
+const fileInput        = $('file-input');
 const btnAnalyzeUpload = $('btn-analyze-upload');
-const btnBatch       = $('btn-batch');
-const batchProgress  = $('batch-progress');
-const progressBar    = $('progress-bar');
-const progressLabel  = $('progress-label');
-const toggleProactive = $('toggle-proactive');
-const sensitivitySel = $('sensitivity-select');
+const btnBatch         = $('btn-batch');
+const batchProgress    = $('batch-progress');
+const progressBar      = $('progress-bar');
+const progressLabel    = $('progress-label');
+const toggleProactive  = $('toggle-proactive');
+const sensitivitySel   = $('sensitivity-select');
 
 // Video tab
-const videoUrlInput        = $('video-url-input');
-const btnUploadVideo       = $('btn-upload-video');
-const videoFileInput       = $('video-file-input');
-const btnAnalyzeVideo      = $('btn-analyze-video');
-const videoStateEmpty      = $('video-state-empty');
-const videoStateLoading    = $('video-state-loading');
-const videoStateResult     = $('video-state-result');
-const videoStateError      = $('video-state-error');
-const videoStateTooLong    = $('video-state-toolong');
-const videoAnalysisBody    = $('video-analysis-body');
-const videoVerdictBadge    = $('video-verdict-badge');
-const videoResultSource    = $('video-result-source');
-const btnClearVideo        = $('btn-clear-video');
-const videoErrorText       = $('video-error-text');
-const videoDetectionRow    = $('video-detection-row');
-const videoDetectionBadge  = $('video-detection-badge');
-const videoDetectionScore  = $('video-detection-score');
-const videoFactcheckWrap   = $('video-factcheck-wrap');
-const videoTooLongText     = $('video-toolong-text');
-const btnDownloadClip      = $('btn-download-clip');
-const btnClearTooLong      = $('btn-clear-toolong');
+const videoUrlInput     = $('video-url-input');
+const btnUploadVideo    = $('btn-upload-video');
+const videoFileInput    = $('video-file-input');
+const btnAnalyzeVideo   = $('btn-analyze-video');
+const videoStateEmpty   = $('video-state-empty');
+const videoStateLoading = $('video-state-loading');
+const videoLoadingMsg   = $('video-loading-msg');
+const videoStateResult  = $('video-state-result');
+const videoStateError   = $('video-state-error');
+const videoStateTooLong = $('video-state-toolong');
+const videoErrorText    = $('video-error-text');
+const videoTooLongText  = $('video-toolong-text');
+const btnDownloadClip   = $('btn-download-clip');
+const btnClearTooLong   = $('btn-clear-toolong');
+// Result card elements
+const videoAiBadge      = $('video-ai-badge');
+const videoAiReason     = $('video-ai-reason');
+const videoFactBadge    = $('video-fact-badge');
+const videoFactSummary  = $('video-fact-summary');
+const videoClaimsList   = $('video-claims-list');
+const videoRawWrap      = $('video-raw-wrap');
+const videoRawText      = $('video-raw-text');
+const videoResultSource = $('video-result-source');
+const btnCopyResult     = $('btn-copy-result');
+const btnClearVideo     = $('btn-clear-video');
 
 // History tab
-const historyList    = $('history-list');
-const historyEmpty   = $('history-empty');
+const historyList = $('history-list');
+const historyEmpty = $('history-empty');
 
 // Settings tab
-const apiKeyInput    = $('api-key-input');
-const endpointInput  = $('endpoint-input');
-const btnSaveKey     = $('btn-save-key');
+const apiKeyInput = $('api-key-input');
+const endpointInput = $('endpoint-input');
+const btnSaveKey = $('btn-save-key');
 const btnSaveEndpoint = $('btn-save-endpoint');
-const btnRecheck     = $('btn-recheck');
-const statusDot      = $('status-dot');
-const statusText     = $('status-text');
-const btnClearCache  = $('btn-clear-cache');
-const cacheFeedback  = $('cache-feedback');
-const connDot        = $('connection-dot');
+const btnRecheck = $('btn-recheck');
+const statusDot = $('status-dot');
+const statusText = $('status-text');
+const btnClearCache = $('btn-clear-cache');
+const cacheFeedback = $('cache-feedback');
+const connDot = $('connection-dot');
 
 // Gauge constants: path "M20,100 A80,80 0 0,1 180,100" → half-circle r=80 → length ≈ 251.2
 const GAUGE_LEN = 251.2;
@@ -85,14 +91,14 @@ const GAUGE_LEN = 251.2;
 
 (async () => {
   setupTabs();
-  await Promise.all([loadSettings(), loadLastResult()]);
+  await Promise.all([loadSettings(), loadLastResult(), loadVideoResult()]);
   checkConnection();
 })();
 
 // Refresh the result area whenever tl_last_result changes in storage
-// (e.g. user picks an image while the panel is already open)
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.tl_last_result) {
+  if (area !== 'local') return;
+  if (changes.tl_last_result) {
     const result = changes.tl_last_result.newValue;
     if (!result) return;
     if (result.score != null) {
@@ -100,6 +106,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
     } else {
       showPreviewOnly(result);
     }
+  }
+  if (changes.tl_video_result) {
+    const vr = changes.tl_video_result.newValue;
+    if (!vr) return;
+    if (vr.status === 'done') showVideoGeminiResult(vr);
+    else if (vr.status === 'loading') setVideoState('loading');
   }
 });
 
@@ -127,11 +139,11 @@ async function loadSettings() {
   const { settings } = await msg({ action: 'getSettings' });
   if (!settings) return;
 
-  apiKeyInput.value     = settings.apiKey  ? '••••••••' : '';
-  endpointInput.value   = settings.endpoint || 'http://localhost:8000';
+  apiKeyInput.value = settings.apiKey ? '••••••••' : '';
+  endpointInput.value = settings.endpoint || 'http://localhost:8000';
 
   toggleProactive.setAttribute('aria-checked', String(!!settings.proactive));
-  sensitivitySel.value  = settings.sensitivity || 'medium';
+  sensitivitySel.value = settings.sensitivity || 'medium';
 }
 
 // ── Load last result ──────────────────────────────────────────────────────
@@ -151,7 +163,190 @@ async function loadLastResult() {
   }
 }
 
-// TODO: remove this function when scanning is implemented
+// ── Load / show video Gemini result ──────────────────────────────────────
+
+async function loadVideoResult() {
+  const vr = await new Promise(resolve =>
+    chrome.storage.local.get('tl_video_result', r => resolve(r.tl_video_result || null))
+  );
+  if (!vr) return;
+  if (vr.status === 'done') {
+    // Switch to video tab and show result
+    const videoTab = document.querySelector('[data-tab="video"]');
+    if (videoTab) videoTab.click();
+    showVideoGeminiResult(vr);
+  } else if (vr.status === 'loading') {
+    // Stale loading state from a closed popup — clear it instead of showing a spinner forever
+    chrome.storage.local.remove('tl_video_result');
+  }
+}
+
+// ── Gemini response parser ────────────────────────────────────────────────
+
+function parseGeminiAnalysis(text) {
+  if (!text || typeof text !== 'string') return null;
+
+  // Require at least the AI DETECTION line to consider this structured
+  const aiMatch = text.match(/AI\s+DETECTION\s*:\s*(Yes|No|Uncertain)\s*[—–-]+\s*(.+)/i);
+  if (!aiMatch) return null;
+
+  const aiVerdict = aiMatch[1].trim();
+  const aiReason  = aiMatch[2].trim();
+
+  // FACT CHECK section follows
+  const fcBlock = text.split(/FACT\s+CHECK\s*:/i)[1] || '';
+
+  const verdictMatch = fcBlock.match(/^Verdict\s*:\s*(.+)/im);
+  const summaryMatch = fcBlock.match(/^Summary\s*:\s*([\s\S]+?)(?=\n\s*Claims\s*:|$)/im);
+
+  const claimLines = fcBlock.split('\n').filter(l => /^\s*[•*\-]\s+/.test(l));
+  const claims = claimLines.map(line => {
+    const content = line.replace(/^\s*[•*\-]\s+/, '').trim();
+    const parts   = content.split(/\s*[—–]\s*/);
+    if (parts.length >= 2) {
+      return {
+        text:    parts.slice(0, parts.length - 1).join(' — ').trim(),
+        verdict: parts[parts.length - 1].trim(),
+      };
+    }
+    return { text: content, verdict: null };
+  });
+
+  return {
+    aiVerdict,
+    aiReason,
+    fcVerdict: verdictMatch ? verdictMatch[1].trim() : null,
+    fcSummary: summaryMatch ? summaryMatch[1].trim() : null,
+    claims,
+  };
+}
+
+function verdictCls(v) {
+  if (!v) return 'unknown';
+  const lv = v.toLowerCase();
+  if (/\b(false|misleading|inaccurate|fabricated|fake)\b/.test(lv)) return 'red';
+  if (/\b(true|authentic|accurate|real|genuine)\b/.test(lv))        return 'green';
+  return 'yellow';
+}
+
+function aiVerdictCls(v) {
+  if (!v) return 'unknown';
+  const lv = v.toLowerCase();
+  if (lv === 'yes') return 'red';
+  if (lv === 'no')  return 'green';
+  return 'yellow';
+}
+
+// ── Loading cycle ─────────────────────────────────────────────────────────
+
+const VIDEO_LOADING_MSGS = [
+  'Uploading video…',
+  'Processing frames…',
+  'Running AI detection…',
+  'Fact-checking claims…',
+  'Almost done…',
+];
+let _videoLoadingTimer = null;
+
+function startVideoLoadingCycle() {
+  let i = 0;
+  videoLoadingMsg.textContent = VIDEO_LOADING_MSGS[0];
+  _videoLoadingTimer = setInterval(() => {
+    i = (i + 1) % VIDEO_LOADING_MSGS.length;
+    videoLoadingMsg.textContent = VIDEO_LOADING_MSGS[i];
+  }, 2800);
+}
+
+function stopVideoLoadingCycle() {
+  if (_videoLoadingTimer) { clearInterval(_videoLoadingTimer); _videoLoadingTimer = null; }
+}
+
+const SCAN_LOADING_MSGS = [
+  'Analyzing image…',
+  'Running AI detection…',
+  'Processing results…',
+  'Almost done…',
+];
+let _scanLoadingTimer = null;
+
+function startScanLoadingCycle() {
+  let i = 0;
+  scanLoadingMsg.textContent = SCAN_LOADING_MSGS[0];
+  _scanLoadingTimer = setInterval(() => {
+    i = (i + 1) % SCAN_LOADING_MSGS.length;
+    scanLoadingMsg.textContent = SCAN_LOADING_MSGS[i];
+  }, 2500);
+}
+
+function stopScanLoadingCycle() {
+  if (_scanLoadingTimer) { clearInterval(_scanLoadingTimer); _scanLoadingTimer = null; }
+}
+
+// ── Render result ─────────────────────────────────────────────────────────
+
+function showVideoGeminiResult({ analysis, url }) {
+  chrome.storage.local.remove('tl_video_result');
+  stopVideoLoadingCycle();
+
+  const parsed = parseGeminiAnalysis(analysis);
+
+  if (parsed) {
+    videoRawWrap.hidden = true;
+
+    // AI Detection card
+    const aiCls = aiVerdictCls(parsed.aiVerdict);
+    videoAiBadge.textContent = parsed.aiVerdict;
+    videoAiBadge.className   = `verdict-badge verdict-badge--${aiCls}`;
+    videoAiBadge.hidden      = false;
+    videoAiReason.textContent = parsed.aiReason || '';
+
+    // Fact Check card
+    if (parsed.fcVerdict) {
+      const fcCls = verdictCls(parsed.fcVerdict);
+      videoFactBadge.textContent = parsed.fcVerdict;
+      videoFactBadge.className   = `verdict-badge verdict-badge--${fcCls}`;
+      videoFactBadge.hidden      = false;
+    } else {
+      videoFactBadge.hidden = true;
+    }
+
+    if (parsed.fcSummary) {
+      videoFactSummary.textContent = parsed.fcSummary;
+      videoFactSummary.hidden = false;
+    } else {
+      videoFactSummary.hidden = true;
+    }
+
+    if (parsed.claims.length) {
+      videoClaimsList.innerHTML = '';
+      parsed.claims.forEach(({ text, verdict }) => {
+        const cls = verdictCls(verdict);
+        const li  = document.createElement('li');
+        li.className = 'vclaim';
+        li.innerHTML =
+          `<span class="vclaim__dot vclaim__dot--${cls}" aria-hidden="true"></span>` +
+          `<span class="vclaim__text">${escAttr(text)}</span>` +
+          (verdict ? `<span class="vclaim__verdict vclaim__verdict--${cls}">${escAttr(verdict)}</span>` : '');
+        videoClaimsList.appendChild(li);
+      });
+      videoClaimsList.hidden = false;
+    } else {
+      videoClaimsList.hidden = true;
+    }
+  } else {
+    // Parsing failed — show raw text
+    videoAiBadge.hidden   = true;
+    videoFactBadge.hidden = true;
+    videoFactSummary.hidden = true;
+    videoClaimsList.hidden  = true;
+    videoRawText.textContent = analysis || '(no response)';
+    videoRawWrap.hidden = false;
+  }
+
+  videoResultSource.textContent = url ? `Source: ${truncate(url, 48)}` : '';
+  setVideoState('result');
+}
+
 function showPreviewOnly({ url, type }) {
   showState('preview');
   const isVideo = type === 'video';
@@ -159,13 +354,12 @@ function showPreviewOnly({ url, type }) {
   previewOnlyVid.hidden = !isVideo;
   if (isVideo) {
     previewOnlyVid.src = url || '';
-    previewOnlyVid.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
   } else {
     previewOnlyImg.src = url || '';
-    previewOnlyImg.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
   }
   previewOnlyUrl.textContent = url ? truncate(url, 48) : '';
   previewOnlyUrl.title = url || '';
+  btnAnalyzeUpload.disabled = !url;
 }
 
 //calculating trustworthy of page 
@@ -192,10 +386,10 @@ function showPreviewOnly({ url, type }) {
 // ── Result rendering ──────────────────────────────────────────────────────
 
 function showState(name) {
-  stateEmpty.hidden   = name !== 'empty';
+  stateEmpty.hidden = name !== 'empty';
   stateLoading.hidden = name !== 'loading';
   statePreview.hidden = name !== 'preview'; // TODO: remove when scanning is implemented
-  stateResult.hidden  = name !== 'result';
+  stateResult.hidden = name !== 'result';
 }
 
 function showResult({ score, label, cls, url, type, source, summary }) {
@@ -223,8 +417,12 @@ function showResult({ score, label, cls, url, type, source, summary }) {
   gaugeLabel.textContent = label;
   gaugeLabel.className = `gauge-label gauge-label--${cls}`;
 
-  resultUrl.textContent  = url ? truncate(url, 48) : '';
-  resultUrl.title        = url || '';
+  resultBadge.textContent = label;
+  resultBadge.className = `verdict-badge verdict-badge--${cls}`;
+  resultBadge.hidden = false;
+
+  resultUrl.textContent = url ? truncate(url, 48) : '';
+  resultUrl.title = url || '';
   resultSource.textContent = source ? `via ${source}` : '';
 
   const summaryEl = $('result-summary');
@@ -245,8 +443,20 @@ btnClearResultScan.addEventListener('click', async () => {
   await chrome.storage.local.remove('tl_last_result');
   pendingPick = null;
   pendingUploadFile = null;
-  btnAnalyzeUpload.disabled = true;
+  btnAnalyzeUpload.disabled = false;
   showState('empty');
+});
+
+btnCopyScan.addEventListener('click', () => {
+  const lines = [];
+  if (gaugePct.textContent) lines.push(`AI Score: ${gaugePct.textContent} — ${gaugeLabel.textContent}`);
+  if (resultUrl.title)       lines.push(`Source: ${resultUrl.title}`);
+
+  navigator.clipboard.writeText(lines.join('\n').trim()).then(() => {
+    const orig = btnCopyScan.innerHTML;
+    btnCopyScan.textContent = 'Copied!';
+    setTimeout(() => { btnCopyScan.innerHTML = orig; }, 1800);
+  }).catch(() => { /* clipboard permission denied — silent */ });
 });
 
 // ── Upload from device ────────────────────────────────────────────────────
@@ -275,44 +485,63 @@ fileInput.addEventListener('change', () => {
 });
 
 btnAnalyzeUpload.addEventListener('click', async () => {
-  if (!pendingUploadFile) return;
+  const hasFile = !!pendingUploadFile;
+  const pendingUrl = previewOnlyUrl.title || '';
+  if (!hasFile && !pendingUrl) return;
 
   const settings = await msg({ action: 'getSettings' });
   const endpoint = settings.settings?.endpoint || 'http://localhost:8000';
 
   showState('loading');
+  startScanLoadingCycle();
   btnAnalyzeUpload.disabled = true;
 
   try {
-    const form = new FormData();
-    form.append('file', pendingUploadFile, pendingUploadFile.name);
+    let json;
 
-    const res = await fetch(`${endpoint}/image/`, {
-      method: 'POST',
-      body: form,
-    });
+    if (hasFile) {
+      const form = new FormData();
+      form.append('file', pendingUploadFile, pendingUploadFile.name);
+      const res = await fetch(`${endpoint}/image/`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      json = await res.json();
+    } else {
+      const res = await fetch(`${endpoint}/image/url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: pendingUrl }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      json = await res.json();
+    }
 
-    if (!res.ok) throw new Error(`Server error ${res.status}`);
-    const json = await res.json();
-
-    // Normalize the aiornot response: score is 0-1 float
-    const raw = json.score ?? json.ai_probability ?? json.result?.score ?? 0;
-    const score = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
-    const { label, cls } = score < 40
+    const raw = json.report?.ai_generated?.ai?.confidence ?? json.score ?? json.ai_probability ?? json.result?.score ?? 0;
+    const aiScore = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
+    const score = 100 - aiScore;
+    const { label, cls } = score > 60
       ? { label: 'Likely Real', cls: 'green' }
-      : score < 70
+      : score > 30
         ? { label: 'Uncertain', cls: 'yellow' }
         : { label: 'Likely AI-Generated', cls: 'red' };
 
-    const dataUrl = await new Promise(resolve => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result);
-      r.readAsDataURL(pendingUploadFile);
-    });
+    let previewUrl = pendingUrl;
+    if (hasFile) {
+      previewUrl = await new Promise(resolve => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.readAsDataURL(pendingUploadFile);
+      });
+    }
 
-    showResult({ score, label, cls, url: dataUrl, type: pendingUploadFile.type.startsWith('video/') ? 'video' : 'image', source: 'backend' });
+    const type = hasFile
+      ? (pendingUploadFile.type.startsWith('video/') ? 'video' : 'image')
+      : 'image';
+
+    stopScanLoadingCycle();
+    showResult({ score, label, cls, url: previewUrl, type, source: 'backend' });
     pendingUploadFile = null;
   } catch (err) {
+    stopScanLoadingCycle();
     showState('preview');
     previewOnlyUrl.textContent = err.message;
     btnAnalyzeUpload.disabled = false;
@@ -395,21 +624,20 @@ sensitivitySel.addEventListener('change', () => {
 
 // ── Video Check ───────────────────────────────────────────────────────────
 
-let pendingVideoUrl  = '';
+let pendingVideoUrl = '';
 let pendingVideoFile = null; // File object for direct upload to /video
 
 function setVideoState(name) {
-  videoStateEmpty.hidden    = name !== 'empty';
-  videoStateLoading.hidden  = name !== 'loading';
-  videoStateResult.hidden   = name !== 'result';
-  videoStateError.hidden    = name !== 'error';
-  videoStateTooLong.hidden  = name !== 'toolong';
+  videoStateEmpty.hidden = name !== 'empty';
+  videoStateLoading.hidden = name !== 'loading';
+  videoStateResult.hidden = name !== 'result';
+  videoStateError.hidden = name !== 'error';
+  videoStateTooLong.hidden = name !== 'toolong';
 }
 
 videoUrlInput.addEventListener('input', () => {
   pendingVideoUrl = videoUrlInput.value.trim();
-  pendingVideoFile = null; // switching to URL mode clears any staged file
-  videoUrlInput.placeholder = 'https://…';
+  pendingVideoFile = null;
   btnAnalyzeVideo.disabled = !pendingVideoUrl;
 });
 
@@ -418,7 +646,6 @@ btnUploadVideo.addEventListener('click', () => videoFileInput.click());
 videoFileInput.addEventListener('change', () => {
   const file = videoFileInput.files[0];
   if (!file) return;
-  videoFileInput.value = '';
 
   if (file.size > 200 * 1024 * 1024) {
     setVideoState('error');
@@ -427,95 +654,66 @@ videoFileInput.addEventListener('change', () => {
   }
 
   pendingVideoFile = file;
-  pendingVideoUrl = URL.createObjectURL(file); // blob URL for preview; File kept for upload
+  pendingVideoUrl = '';
   videoUrlInput.value = '';
   videoUrlInput.placeholder = file.name;
   btnAnalyzeVideo.disabled = false;
+  console.log('[video] file staged:', file.name);
 });
 
 btnAnalyzeVideo.addEventListener('click', async () => {
-  if (!pendingVideoUrl) return;
+  console.log('[video] clicked, pendingVideoUrl:', pendingVideoUrl, '| pendingVideoFile:', pendingVideoFile);
+  if (!pendingVideoUrl && !pendingVideoFile) { console.warn('[video] nothing pending, aborting'); return; }
 
   btnAnalyzeVideo.disabled = true;
   setVideoState('loading');
+  startVideoLoadingCycle();
 
-  // ── File upload: AI detection only (direct fetch, no fact-check) ──────────
-  if (pendingVideoFile) {
-    const endpoint = await new Promise(resolve =>
-      chrome.storage.local.get('tl_settings', r =>
-        resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
-      )
-    );
-    try {
+  const endpoint = await new Promise(resolve =>
+    chrome.storage.local.get('tl_settings', r =>
+      resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
+    )
+  );
+
+  try {
+    let analysis;
+
+    if (pendingVideoFile) {
       const form = new FormData();
       form.append('file', pendingVideoFile, pendingVideoFile.name);
-      const res = await fetch(`${endpoint}/video/`, { method: 'POST', body: form });
+      const res = await fetch(`${endpoint}/video/gemini/upload`, { method: 'POST', body: form });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const json = await res.json();
-      showVideoDetection(normalizeVideoResult(json));
-      videoFactcheckWrap.hidden = true;
-      videoResultSource.textContent = `Source: ${pendingVideoFile.name}`;
-      setVideoState('result');
-    } catch (err) {
-      setVideoState('error');
-      videoErrorText.textContent = err.message || 'Detection failed.';
+      analysis = json.analysis;
+    } else {
+      await chrome.storage.local.set({ tl_video_result: { status: 'loading', url: pendingVideoUrl } });
+      const res = await fetch(`${endpoint}/video/gemini/url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: pendingVideoUrl }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const json = await res.json();
+      analysis = json.analysis;
     }
-    btnAnalyzeVideo.disabled = false;
-    return;
-  }
 
-  // ── URL: fact-check + AI detection in parallel ────────────────────────────
-  const [factRes, detRes] = await Promise.all([
-    msg({ action: 'analyzeVideoContent', url: pendingVideoUrl }),
-    msg({ action: 'analyzeVideoDetection', url: pendingVideoUrl }),
-  ]);
+    showVideoGeminiResult({ analysis, url: pendingVideoFile ? pendingVideoFile.name : pendingVideoUrl });
+  } catch (err) {
+    stopVideoLoadingCycle();
+    setVideoState('error');
+    videoErrorText.textContent = err.message || 'Analysis failed.';
+  }
 
   btnAnalyzeVideo.disabled = false;
-
-  // "Too long" response takes priority
-  if (factRes.toolong) {
-    const endpoint = await new Promise(resolve =>
-      chrome.storage.local.get('tl_settings', r =>
-        resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
-      )
-    );
-    videoTooLongText.textContent = factRes.detail || 'Video is too long to analyze.';
-    btnDownloadClip.href = `${endpoint}/factcheck/video/download/${factRes.downloadToken}`;
-    setVideoState('toolong');
-    return;
-  }
-
-  if (factRes.error && detRes.error) {
-    setVideoState('error');
-    videoErrorText.textContent = factRes.error || detRes.error;
-    return;
-  }
-
-  // Show AI detection row if available
-  if (detRes.detection && !detRes.error) {
-    showVideoDetection(detRes.detection);
-  } else {
-    videoDetectionRow.hidden = true;
-  }
-
-  // Show fact-check card if available
-  if (factRes.ok && !factRes.error) {
-    renderFactCheck(factRes);
-    videoFactcheckWrap.hidden = false;
-  } else {
-    videoFactcheckWrap.hidden = true;
-  }
-
-  videoResultSource.textContent = `Source: ${truncate(pendingVideoUrl, 48)}`;
-  setVideoState('result');
 });
 
 function resetVideoTab() {
+  stopVideoLoadingCycle();
   if (pendingVideoUrl.startsWith('blob:')) URL.revokeObjectURL(pendingVideoUrl);
   pendingVideoUrl = '';
   pendingVideoFile = null;
   videoUrlInput.value = '';
-  videoUrlInput.placeholder = 'https://…';
+  videoUrlInput.placeholder = 'Paste YouTube, TikTok, or direct video URL…';
   btnAnalyzeVideo.disabled = true;
   setVideoState('empty');
 }
@@ -523,90 +721,41 @@ function resetVideoTab() {
 btnClearVideo.addEventListener('click', resetVideoTab);
 btnClearTooLong.addEventListener('click', resetVideoTab);
 
-// ── Fact-check renderer ───────────────────────────────────────────────────
+// ── Copy results to clipboard ─────────────────────────────────────────────
 
-function renderFactCheck({ verdict, explanation, factualityScore, claims, articles }) {
-  // Verdict badge
-  if (verdict) {
-    const lv = verdict.toLowerCase();
-    const cls = /false|misleading|inaccurate|fabricated/.test(lv) ? 'red'
-              : /uncertain|unverified|mixed|partial/.test(lv)      ? 'yellow'
-              : 'green';
-    videoVerdictBadge.textContent = verdict;
-    videoVerdictBadge.className = `verdict-badge verdict-badge--${cls}`;
-    videoVerdictBadge.hidden = false;
+btnCopyResult.addEventListener('click', () => {
+  const lines = [];
+
+  if (!videoRawWrap.hidden) {
+    lines.push(videoRawText.textContent);
   } else {
-    videoVerdictBadge.hidden = true;
+    if (!videoAiBadge.hidden) {
+      lines.push(`AI Detection: ${videoAiBadge.textContent}`);
+      if (videoAiReason.textContent) lines.push(videoAiReason.textContent);
+    }
+    lines.push('');
+    if (!videoFactBadge.hidden)
+      lines.push(`Fact Check: ${videoFactBadge.textContent}`);
+    if (!videoFactSummary.hidden)
+      lines.push(videoFactSummary.textContent);
+    if (!videoClaimsList.hidden) {
+      lines.push('');
+      videoClaimsList.querySelectorAll('.vclaim').forEach(li => {
+        const text    = li.querySelector('.vclaim__text')?.textContent    || '';
+        const verdict = li.querySelector('.vclaim__verdict')?.textContent || '';
+        lines.push(`• ${text}${verdict ? ' — ' + verdict : ''}`);
+      });
+    }
   }
 
-  videoAnalysisBody.innerHTML = '';
+  if (videoResultSource.textContent) lines.push('', videoResultSource.textContent);
 
-  // Explanation
-  if (explanation) {
-    const p = document.createElement('p');
-    p.className = 'factcheck-para';
-    p.textContent = explanation;
-    videoAnalysisBody.appendChild(p);
-  }
-
-  // Factuality score
-  if (factualityScore != null) {
-    const p = document.createElement('p');
-    p.className = 'factcheck-para factcheck-score';
-    p.innerHTML = `Factuality score: <strong>${factualityScore}%</strong>`;
-    videoAnalysisBody.appendChild(p);
-  }
-
-  // Claims
-  if (claims?.length) {
-    const hdr = document.createElement('p');
-    hdr.className = 'factcheck-section-title';
-    hdr.textContent = 'Claims reviewed:';
-    videoAnalysisBody.appendChild(hdr);
-    claims.forEach(claim => {
-      const p = document.createElement('p');
-      p.className = 'factcheck-claim';
-      p.textContent = `• ${typeof claim === 'string' ? claim : claim.text ?? JSON.stringify(claim)}`;
-      videoAnalysisBody.appendChild(p);
-    });
-  }
-
-  // Articles
-  if (articles?.length) {
-    const hdr = document.createElement('p');
-    hdr.className = 'factcheck-section-title';
-    hdr.textContent = 'Sources:';
-    videoAnalysisBody.appendChild(hdr);
-    articles.forEach(({ title, url, snippet }) => {
-      const p = document.createElement('p');
-      p.className = 'factcheck-article';
-      p.innerHTML = url
-        ? `• <a href="${escAttr(url)}" target="_blank" rel="noopener">${escAttr(title || url)}</a>`
-        : `• ${escAttr(title || '')}`;
-      videoAnalysisBody.appendChild(p);
-    });
-  }
-}
-
-// ── Video AI detection ────────────────────────────────────────────────────
-
-function normalizeVideoResult(json) {
-  const raw = json.score ?? json.ai_probability ?? json.result?.score ?? 0;
-  const score = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
-  const { label, cls } = score < 40
-    ? { label: 'Likely Real', cls: 'green' }
-    : score < 70
-      ? { label: 'Uncertain', cls: 'yellow' }
-      : { label: 'Likely AI', cls: 'red' };
-  return { score, label, cls };
-}
-
-function showVideoDetection({ score, label, cls }) {
-  videoDetectionRow.hidden = false;
-  videoDetectionBadge.textContent = label;
-  videoDetectionBadge.className = `verdict-badge verdict-badge--${cls}`;
-  videoDetectionScore.textContent = `${score}% authentic`;
-}
+  navigator.clipboard.writeText(lines.join('\n').trim()).then(() => {
+    const orig = btnCopyResult.innerHTML;
+    btnCopyResult.textContent = 'Copied!';
+    setTimeout(() => { btnCopyResult.innerHTML = orig; }, 1800);
+  }).catch(() => { /* clipboard permission denied — silent */ });
+});
 
 // ── History ───────────────────────────────────────────────────────────────
 
@@ -628,17 +777,40 @@ function buildHistoryItem({ url, type, score, label, cls, timestamp }) {
   const age = timeAgo(timestamp);
   const isImg = type !== 'video';
 
-  li.innerHTML = `
-    ${isImg
-      ? `<img class="history-thumb" src="${escAttr(url)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`
-      : `<div class="history-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px;">▶</div>`
-    }
-    <div class="history-info">
-      <div class="history-url" title="${escAttr(url)}">${truncate(url, 36)}</div>
-      <div class="history-time">${age}</div>
-    </div>
-    <span class="history-badge history-badge--${cls}">${score}%</span>
-  `;
+  if (isImg) {
+    const img = document.createElement('img');
+    img.className = 'history-thumb';
+    img.src = url;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
+    li.appendChild(img);
+  } else {
+    const thumb = document.createElement('div');
+    thumb.className = 'history-thumb';
+    thumb.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:18px;';
+    thumb.textContent = '▶';
+    li.appendChild(thumb);
+  }
+
+  const info = document.createElement('div');
+  info.className = 'history-info';
+  const urlDiv = document.createElement('div');
+  urlDiv.className = 'history-url';
+  urlDiv.title = url;
+  urlDiv.textContent = truncate(url, 36);
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'history-time';
+  timeDiv.textContent = age;
+  info.appendChild(urlDiv);
+  info.appendChild(timeDiv);
+  li.appendChild(info);
+
+  const badge = document.createElement('span');
+  badge.className = `history-badge history-badge--${cls}`;
+  badge.textContent = `${score}%`;
+  li.appendChild(badge);
+
   return li;
 }
 
@@ -685,10 +857,19 @@ btnClearCache.addEventListener('click', async () => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function msg(payload) {
+function msg(payload, _attempt = 0) {
   return new Promise(resolve => {
     chrome.runtime.sendMessage(payload, res => {
-      if (chrome.runtime.lastError) return resolve({ error: chrome.runtime.lastError.message });
+      const err = chrome.runtime.lastError;
+      if (err) {
+        // Service worker may be waking up — retry once after a short delay
+        if (_attempt === 0 && err.message && err.message.includes('Receiving end does not exist')) {
+          setTimeout(() => msg(payload, 1).then(resolve), 500);
+        } else {
+          resolve({ error: err.message });
+        }
+        return;
+      }
       resolve(res || {});
     });
   });
@@ -719,8 +900,9 @@ function timeAgo(ts) {
   if (!ts) return '';
   const diff = Date.now() - ts;
   const s = Math.floor(diff / 1000);
-  if (s < 60)   return 'just now';
+  if (s < 60) return 'just now';
   if (s < 3600) return Math.floor(s / 60) + 'm ago';
   if (s < 86400) return Math.floor(s / 3600) + 'h ago';
   return Math.floor(s / 86400) + 'd ago';
 }
+
