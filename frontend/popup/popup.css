@@ -1235,6 +1235,10 @@ body {
   color: var(--yellow);
 }
 
+.art-char-hint--min {
+  color: var(--primary);
+}
+
 /* Two-button row */
 .art-btn-row {
   display: flex;

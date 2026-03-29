@@ -499,16 +499,28 @@ function showArticleResult(aiResult, fcResult) {
 
 // ── Textarea char counter ─────────────────────────────────────────────────
 
+const ARTICLE_AI_MIN = 250;
+
 function _setArticleBtns(disabled) {
   btnDetectArticle.disabled    = disabled;
   btnFactcheckArticle.disabled = disabled;
 }
 
+function _updateArticleBtns() {
+  const len = articleTextarea.value.trim().length;
+  btnDetectArticle.disabled    = len < ARTICLE_AI_MIN;
+  btnFactcheckArticle.disabled = len === 0;
+}
+
 articleTextarea.addEventListener('input', () => {
   const len = articleTextarea.value.length;
-  articleCharHint.textContent = `${len.toLocaleString()} / 15 000 chars`;
+  const belowMin = len > 0 && len < ARTICLE_AI_MIN;
+  articleCharHint.textContent = belowMin
+    ? `${len.toLocaleString()} / 15 000 chars  ·  ${ARTICLE_AI_MIN - len} more needed for AI detection`
+    : `${len.toLocaleString()} / 15 000 chars`;
   articleCharHint.classList.toggle('art-char-hint--warn', len > 12000);
-  _setArticleBtns(len === 0);
+  articleCharHint.classList.toggle('art-char-hint--min', belowMin);
+  _updateArticleBtns();
 });
 
 // ── Grab current page ─────────────────────────────────────────────────────
@@ -594,7 +606,7 @@ btnDetectArticle.addEventListener('click', async () => {
     articleErrorText.textContent = err.message || 'AI detection failed. Is the backend running?';
     setArticleState('error');
   } finally {
-    _setArticleBtns(articleTextarea.value.trim().length === 0);
+    _updateArticleBtns();
   }
 });
 
@@ -625,7 +637,7 @@ btnFactcheckArticle.addEventListener('click', async () => {
     articleErrorText.textContent = err.message || 'Fact-check failed. Is the backend running?';
     setArticleState('error');
   } finally {
-    _setArticleBtns(articleTextarea.value.trim().length === 0);
+    _updateArticleBtns();
   }
 });
 
