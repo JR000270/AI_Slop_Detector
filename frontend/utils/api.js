@@ -117,26 +117,49 @@ async function callDirectApi(url, type, apiKey) {
 }
 
 /**
- * Send a video URL (or data URL for uploaded files) to the backend for
- * content analysis. Returns a plain-text analysis string from the backend.
- *
- * @param {string} url   HTTP URL or data URL of the video
- * @param {string} apiKey
- * @param {string} endpoint  Base OpenClaw endpoint
- * @returns {Promise<string>}  Analysis text
+ * Fact-check a video URL via yt-dlp + Gemini.
+ * Returns either a FactCheckResult or a VideoTooLongResponse shape.
  */
 async function analyzeVideoContent(url, apiKey, endpoint = DEFAULT_ENDPOINT) {
-  const res = await fetchWithTimeout(`${endpoint}/image/gemini/youtube`, {
+  const res = await fetchWithTimeout(`${endpoint}/factcheck/video/url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url }),
-  }, 60000); // generous timeout — video analysis takes longer
+  }, 90000);
 
   if (!res.ok) throw new Error(`Server error ${res.status}`);
   const json = await res.json();
-  const text = json.analysis ?? json.text ?? json.result ?? null;
-  if (!text) throw new Error('No analysis returned from server.');
-  return text;
+
+  // Too-long response: { detail, duration, download_token }
+  if (json.download_token) {
+    return { toolong: true, detail: json.detail, duration: json.duration, downloadToken: json.download_token };
+  }
+
+  // Success: { claims, factuality_score, verdict, explanation, articles }
+  return {
+    toolong: false,
+    claims: json.claims ?? [],
+    factualityScore: json.factuality_score ?? null,
+    verdict: json.verdict ?? null,
+    explanation: json.explanation ?? null,
+    articles: json.articles ?? [],
+  };
+}
+
+/**
+ * Check whether a video URL contains AI-generated content.
+ * Calls POST /video/url and returns a normalised { score, label, cls } result.
+ */
+async function analyzeVideoDetection(url, endpoint = DEFAULT_ENDPOINT) {
+  const res = await fetchWithTimeout(`${endpoint}/video/url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  }, 60000);
+
+  if (!res.ok) throw new Error(`Server error ${res.status}`);
+  const json = await res.json();
+  return normalizeResult(json, 'backend');
 }
 
 /** Ping backend health endpoint. Returns true if reachable. */

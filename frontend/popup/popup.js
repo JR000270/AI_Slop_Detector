@@ -40,19 +40,27 @@ const toggleProactive = $('toggle-proactive');
 const sensitivitySel = $('sensitivity-select');
 
 // Video tab
-const videoUrlInput      = $('video-url-input');
-const btnUploadVideo     = $('btn-upload-video');
-const videoFileInput     = $('video-file-input');
-const btnAnalyzeVideo    = $('btn-analyze-video');
-const videoStateEmpty    = $('video-state-empty');
-const videoStateLoading  = $('video-state-loading');
-const videoStateResult   = $('video-state-result');
-const videoStateError    = $('video-state-error');
-const videoAnalysisBody  = $('video-analysis-body');
-const videoVerdictBadge  = $('video-verdict-badge');
-const videoResultSource  = $('video-result-source');
-const btnClearVideo      = $('btn-clear-video');
-const videoErrorText     = $('video-error-text');
+const videoUrlInput        = $('video-url-input');
+const btnUploadVideo       = $('btn-upload-video');
+const videoFileInput       = $('video-file-input');
+const btnAnalyzeVideo      = $('btn-analyze-video');
+const videoStateEmpty      = $('video-state-empty');
+const videoStateLoading    = $('video-state-loading');
+const videoStateResult     = $('video-state-result');
+const videoStateError      = $('video-state-error');
+const videoStateTooLong    = $('video-state-toolong');
+const videoAnalysisBody    = $('video-analysis-body');
+const videoVerdictBadge    = $('video-verdict-badge');
+const videoResultSource    = $('video-result-source');
+const btnClearVideo        = $('btn-clear-video');
+const videoErrorText       = $('video-error-text');
+const videoDetectionRow    = $('video-detection-row');
+const videoDetectionBadge  = $('video-detection-badge');
+const videoDetectionScore  = $('video-detection-score');
+const videoFactcheckWrap   = $('video-factcheck-wrap');
+const videoTooLongText     = $('video-toolong-text');
+const btnDownloadClip      = $('btn-download-clip');
+const btnClearTooLong      = $('btn-clear-toolong');
 
 // History tab
 const historyList    = $('history-list');
@@ -381,17 +389,21 @@ sensitivitySel.addEventListener('change', () => {
 
 // ── Video Check ───────────────────────────────────────────────────────────
 
-let pendingVideoUrl = '';
+let pendingVideoUrl  = '';
+let pendingVideoFile = null; // File object for direct upload to /video
 
 function setVideoState(name) {
-  videoStateEmpty.hidden   = name !== 'empty';
-  videoStateLoading.hidden = name !== 'loading';
-  videoStateResult.hidden  = name !== 'result';
-  videoStateError.hidden   = name !== 'error';
+  videoStateEmpty.hidden    = name !== 'empty';
+  videoStateLoading.hidden  = name !== 'loading';
+  videoStateResult.hidden   = name !== 'result';
+  videoStateError.hidden    = name !== 'error';
+  videoStateTooLong.hidden  = name !== 'toolong';
 }
 
 videoUrlInput.addEventListener('input', () => {
   pendingVideoUrl = videoUrlInput.value.trim();
+  pendingVideoFile = null; // switching to URL mode clears any staged file
+  videoUrlInput.placeholder = 'https://…';
   btnAnalyzeVideo.disabled = !pendingVideoUrl;
 });
 
@@ -402,20 +414,17 @@ videoFileInput.addEventListener('change', () => {
   if (!file) return;
   videoFileInput.value = '';
 
-  if (file.size > 50 * 1024 * 1024) {
+  if (file.size > 200 * 1024 * 1024) {
     setVideoState('error');
-    videoErrorText.textContent = 'File too large (max 50 MB). Please use a URL instead.';
+    videoErrorText.textContent = 'File too large (max 200 MB). Please use a URL instead.';
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    pendingVideoUrl = reader.result; // data URL
-    videoUrlInput.value = '';
-    videoUrlInput.placeholder = file.name;
-    btnAnalyzeVideo.disabled = false;
-  };
-  reader.readAsDataURL(file);
+  pendingVideoFile = file;
+  pendingVideoUrl = URL.createObjectURL(file); // blob URL for preview; File kept for upload
+  videoUrlInput.value = '';
+  videoUrlInput.placeholder = file.name;
+  btnAnalyzeVideo.disabled = false;
 });
 
 btnAnalyzeVideo.addEventListener('click', async () => {
@@ -424,66 +433,173 @@ btnAnalyzeVideo.addEventListener('click', async () => {
   btnAnalyzeVideo.disabled = true;
   setVideoState('loading');
 
-  const { ok, text, error } = await msg({ action: 'analyzeVideoContent', url: pendingVideoUrl });
-
-  btnAnalyzeVideo.disabled = false;
-
-  if (error || !ok) {
-    setVideoState('error');
-    videoErrorText.textContent = error || 'Analysis failed. Check your connection and settings.';
+  // ── File upload: AI detection only (direct fetch, no fact-check) ──────────
+  if (pendingVideoFile) {
+    const endpoint = await new Promise(resolve =>
+      chrome.storage.local.get('tl_settings', r =>
+        resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
+      )
+    );
+    try {
+      const form = new FormData();
+      form.append('file', pendingVideoFile, pendingVideoFile.name);
+      const res = await fetch(`${endpoint}/video/`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const json = await res.json();
+      showVideoDetection(normalizeVideoResult(json));
+      videoFactcheckWrap.hidden = true;
+      videoResultSource.textContent = `Source: ${pendingVideoFile.name}`;
+      setVideoState('result');
+    } catch (err) {
+      setVideoState('error');
+      videoErrorText.textContent = err.message || 'Detection failed.';
+    }
+    btnAnalyzeVideo.disabled = false;
     return;
   }
 
-  renderFactCheck(text);
-  videoResultSource.textContent = pendingVideoUrl.startsWith('data:') ? 'Source: uploaded file' : `Source: ${truncate(pendingVideoUrl, 48)}`;
+  // ── URL: fact-check + AI detection in parallel ────────────────────────────
+  const [factRes, detRes] = await Promise.all([
+    msg({ action: 'analyzeVideoContent', url: pendingVideoUrl }),
+    msg({ action: 'analyzeVideoDetection', url: pendingVideoUrl }),
+  ]);
+
+  btnAnalyzeVideo.disabled = false;
+
+  // "Too long" response takes priority
+  if (factRes.toolong) {
+    const endpoint = await new Promise(resolve =>
+      chrome.storage.local.get('tl_settings', r =>
+        resolve(r.tl_settings?.endpoint || 'http://localhost:8000')
+      )
+    );
+    videoTooLongText.textContent = factRes.detail || 'Video is too long to analyze.';
+    btnDownloadClip.href = `${endpoint}/factcheck/video/download/${factRes.downloadToken}`;
+    setVideoState('toolong');
+    return;
+  }
+
+  if (factRes.error && detRes.error) {
+    setVideoState('error');
+    videoErrorText.textContent = factRes.error || detRes.error;
+    return;
+  }
+
+  // Show AI detection row if available
+  if (detRes.detection && !detRes.error) {
+    showVideoDetection(detRes.detection);
+  } else {
+    videoDetectionRow.hidden = true;
+  }
+
+  // Show fact-check card if available
+  if (factRes.ok && !factRes.error) {
+    renderFactCheck(factRes);
+    videoFactcheckWrap.hidden = false;
+  } else {
+    videoFactcheckWrap.hidden = true;
+  }
+
+  videoResultSource.textContent = `Source: ${truncate(pendingVideoUrl, 48)}`;
   setVideoState('result');
 });
 
-btnClearVideo.addEventListener('click', () => {
+function resetVideoTab() {
+  if (pendingVideoUrl.startsWith('blob:')) URL.revokeObjectURL(pendingVideoUrl);
   pendingVideoUrl = '';
+  pendingVideoFile = null;
   videoUrlInput.value = '';
   videoUrlInput.placeholder = 'https://…';
   btnAnalyzeVideo.disabled = true;
   setVideoState('empty');
-});
+}
+
+btnClearVideo.addEventListener('click', resetVideoTab);
+btnClearTooLong.addEventListener('click', resetVideoTab);
 
 // ── Fact-check renderer ───────────────────────────────────────────────────
 
-function renderFactCheck(text) {
-  // Detect overall verdict from text
-  const lower = text.toLowerCase();
-  let verdictLabel = null;
-  let verdictCls = null;
-
-  if (/\b(false|fabricated|fake|disinformation|misleading|inaccurate|debunked)\b/.test(lower)) {
-    verdictLabel = 'False / Misleading';
-    verdictCls = 'red';
-  } else if (/\b(unverified|unclear|disputed|insufficient|no evidence|cannot confirm|inconclusive|mixed)\b/.test(lower)) {
-    verdictLabel = 'Unverified';
-    verdictCls = 'yellow';
-  } else if (/\b(true|accurate|verified|authentic|correct|confirmed|genuine|real)\b/.test(lower)) {
-    verdictLabel = 'Likely Accurate';
-    verdictCls = 'green';
-  }
-
-  if (verdictLabel) {
-    videoVerdictBadge.textContent = verdictLabel;
-    videoVerdictBadge.className = `verdict-badge verdict-badge--${verdictCls}`;
+function renderFactCheck({ verdict, explanation, factualityScore, claims, articles }) {
+  // Verdict badge
+  if (verdict) {
+    const lv = verdict.toLowerCase();
+    const cls = /false|misleading|inaccurate|fabricated/.test(lv) ? 'red'
+              : /uncertain|unverified|mixed|partial/.test(lv)      ? 'yellow'
+              : 'green';
+    videoVerdictBadge.textContent = verdict;
+    videoVerdictBadge.className = `verdict-badge verdict-badge--${cls}`;
     videoVerdictBadge.hidden = false;
   } else {
     videoVerdictBadge.hidden = true;
   }
 
-  // Render paragraphs
   videoAnalysisBody.innerHTML = '';
-  const paras = text.split(/\n\s*\n/).filter(p => p.trim());
-  if (paras.length === 0) paras.push(text);
-  paras.forEach(para => {
+
+  // Explanation
+  if (explanation) {
     const p = document.createElement('p');
     p.className = 'factcheck-para';
-    p.textContent = para.trim();
+    p.textContent = explanation;
     videoAnalysisBody.appendChild(p);
-  });
+  }
+
+  // Factuality score
+  if (factualityScore != null) {
+    const p = document.createElement('p');
+    p.className = 'factcheck-para factcheck-score';
+    p.innerHTML = `Factuality score: <strong>${factualityScore}%</strong>`;
+    videoAnalysisBody.appendChild(p);
+  }
+
+  // Claims
+  if (claims?.length) {
+    const hdr = document.createElement('p');
+    hdr.className = 'factcheck-section-title';
+    hdr.textContent = 'Claims reviewed:';
+    videoAnalysisBody.appendChild(hdr);
+    claims.forEach(claim => {
+      const p = document.createElement('p');
+      p.className = 'factcheck-claim';
+      p.textContent = `• ${typeof claim === 'string' ? claim : claim.text ?? JSON.stringify(claim)}`;
+      videoAnalysisBody.appendChild(p);
+    });
+  }
+
+  // Articles
+  if (articles?.length) {
+    const hdr = document.createElement('p');
+    hdr.className = 'factcheck-section-title';
+    hdr.textContent = 'Sources:';
+    videoAnalysisBody.appendChild(hdr);
+    articles.forEach(({ title, url, snippet }) => {
+      const p = document.createElement('p');
+      p.className = 'factcheck-article';
+      p.innerHTML = url
+        ? `• <a href="${escAttr(url)}" target="_blank" rel="noopener">${escAttr(title || url)}</a>`
+        : `• ${escAttr(title || '')}`;
+      videoAnalysisBody.appendChild(p);
+    });
+  }
+}
+
+// ── Video AI detection ────────────────────────────────────────────────────
+
+function normalizeVideoResult(json) {
+  const raw = json.score ?? json.ai_probability ?? json.result?.score ?? 0;
+  const score = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
+  const { label, cls } = score < 40
+    ? { label: 'Likely Real', cls: 'green' }
+    : score < 70
+      ? { label: 'Uncertain', cls: 'yellow' }
+      : { label: 'Likely AI', cls: 'red' };
+  return { score, label, cls };
+}
+
+function showVideoDetection({ score, label, cls }) {
+  videoDetectionRow.hidden = false;
+  videoDetectionBadge.textContent = label;
+  videoDetectionBadge.className = `verdict-badge verdict-badge--${cls}`;
+  videoDetectionScore.textContent = `${score}% authentic`;
 }
 
 // ── History ───────────────────────────────────────────────────────────────
