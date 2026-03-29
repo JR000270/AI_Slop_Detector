@@ -27,12 +27,12 @@
   <nav class="tabs" role="tablist">
     <button class="tab tab--active" data-tab="scan" role="tab" aria-selected="true">Image Check</button>
     <button class="tab" data-tab="video" role="tab">Video Check</button>
+    <button class="tab" data-tab="history" role="tab">History</button>
     <button class="tab" data-tab="settings" role="tab">Settings</button>
   </nav>
 
   <!-- ── Scan tab ───────────────────────────────────────────────────────── -->
   <section class="tab-panel" id="tab-scan" role="tabpanel">
-
     <!-- Result area -->
     <div id="result-area">
 
@@ -65,10 +65,7 @@
         <p id="preview-only-url" class="result-url"></p>
         <p class="preview-only-note">Scanning not yet implemented</p>
         <br>
-        <div style="display:flex;gap:8px;">
-          <button id="btn-analyze-upload" class="btn btn--primary" disabled>Analyze</button>
-          <button id="btn-clear-result" class="btn">Clear</button>
-        </div>
+        <button id="btn-clear-result" class="btn">Clear</button>
       </div>
 
       <!-- Result state -->
@@ -152,6 +149,7 @@
         </div>
         <p id="progress-label" class="progress-label">Scanning…</p>
       </div>
+      <p id = "domain-trust" hidden style="margin:8px 0 0 0; font-size:12px; text-align:center; display:flex; gap:6px; justify-content:center; align-items:center;"></p>
     </div>
 
     <hr class="divider" />
@@ -225,6 +223,14 @@
 
   </section>
 
+  <!-- ── History tab ─────────────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-history" role="tabpanel" hidden>
+    <div id="history-empty" class="state" hidden>
+      <p class="empty-title">No history yet</p>
+      <p class="empty-sub">Scanned items will appear here.</p>
+    </div>
+    <ul id="history-list" class="history-list" aria-label="Scan history"></ul>
+  </section>
 
   <!-- ── Settings tab ────────────────────────────────────────────────────── -->
   <section class="tab-panel" id="tab-settings" role="tabpanel" hidden>
