@@ -125,7 +125,7 @@
         break;
       case 'addBadge':
       case 'updateBadge':
-        upsertBadge(msg.url, 'result', { score: msg.score, label: msg.label, cls: msg.cls });
+        upsertBadge(msg.url, 'result', { score: msg.score, label: msg.label, cls: msg.cls, summary: msg.summary });
         break;
       case 'badgeError':
         upsertBadge(msg.url, 'error', { message: msg.message });
@@ -257,8 +257,9 @@
     const score = parseInt(badge.dataset.score, 10);
     if (isNaN(score)) return; // no result yet
 
-    const label = badge.dataset.label;
-    const cls   = badge.dataset.cls;
+    const label   = badge.dataset.label;
+    const cls     = badge.dataset.cls;
+    const summary = badge.dataset.summary || '';
 
     const detail = document.createElement('div');
     detail.className = `tl-detail tl-detail--${cls}`;
@@ -278,6 +279,7 @@
         <div class="tl-detail__pct">${score}%</div>
       </div>
       <div class="tl-detail__label">${escHtml(label)}</div>
+      ${summary ? `<div class="tl-detail__summary">${escHtml(summary)}</div>` : ''}
       <div class="tl-detail__url" title="${escAttr(url)}">${truncate(url, 40)}</div>
     `;
 

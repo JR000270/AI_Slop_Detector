@@ -1,71 +1,55 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from helper import get_gemini_api_key
+from helper import get_ai_or_not_api_key
 from fastapi import HTTPException
-from google import genai
+import httpx
 
-_gemini_client = None
+TEXT_ENDPOINT = "https://api.aiornot.com/v2/text/sync"
 
-def _get_gemini_client():
-    global _gemini_client
-    if _gemini_client is None:
-        _gemini_client = genai.Client(api_key=get_gemini_api_key())
-    return _gemini_client
 
-ANALYSIS_PROMPT = """
-You are a fact-checking assistant. Analyze the following webpage text and return a JSON object with exactly these fields:
+def _map_verdict(confidence: float) -> str:
+    if confidence >= 0.7:
+        return "likely_ai"
+    elif confidence >= 0.4:
+        return "uncertain"
+    else:
+        return "likely_real"
 
-{
-  "verdict": "likely_real" | "uncertain" | "likely_ai",
-  "ai_score": <integer 0-100, where 100 = definitely AI-generated>,
-  "ai_signals": [<list of specific patterns observed that suggest AI writing, or empty list>],
-  "claims": [
-    {
-      "text": <the specific claim>,
-      "assessment": "supported" | "contradicted" | "unverifiable",
-      "explanation": <one sentence explanation>
-    }
-  ],
-  "summary": <2-3 sentence plain English summary of your findings>
-}
-
-Important rules:
-- ai_signals should be specific patterns like "excessive hedging", "generic list structure",
-  "no named sources", "suspiciously balanced phrasing" — not vague statements
-- Never claim content IS definitively AI-generated, only flag likelihood
-- Only include claims that are verifiable factual assertions, not opinions
-- Keep claim list to the 3 most important checkable claims maximum
-- Return valid JSON only, no markdown, no explanation outside the JSON
-
-Webpage text to analyze:
-"""
 
 async def analyze_text(text: str) -> dict:
     if not text or not text.strip():
         raise HTTPException(status_code=400, detail="No text provided")
 
-    if len(text) > 20000:
-        text = text[:20000]
+    if len(text) > 500000:
+        text = text[:500000]
+
+    api_key = get_ai_or_not_api_key()
 
     try:
-        response = _get_gemini_client().models.generate_content(
-            model="gemini-2.5-flash",
-            contents=ANALYSIS_PROMPT + text
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                TEXT_ENDPOINT,
+                headers={"Authorization": f"Bearer {api_key}"},
+                data={"text": text},
+            )
+            response.raise_for_status()
+            data = response.json()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"AI-or-Not error: {e.response.text}",
         )
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"AI-or-Not unreachable: {str(e)}")
 
-        import json
-        raw = response.text.strip()
+    ai_text = data.get("report", {}).get("ai_text", {})
+    confidence = ai_text.get("confidence", 0.0)
+    is_detected = ai_text.get("is_detected", False)
 
-        # Strip markdown code fences if Gemini adds them
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-
-        return json.loads(raw)
-
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Gemini returned malformed JSON")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini error: {str(e)}")
+    return {
+        "verdict": _map_verdict(confidence),
+        "ai_score": round(confidence * 100),
+        "is_detected": is_detected,
+        "confidence": confidence,
+    }
