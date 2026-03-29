@@ -60,12 +60,19 @@ async function handle(msg, sender) {
     case 'analyzeSingle': {
       const { url, type } = msg;
       const settings = await getSettings();
+      console.log('[bg:analyzeSingle] url:', url, '| type:', type, '| endpoint:', settings.endpoint, '| hasApiKey:', !!settings.apiKey);
       sendToTab(sender.tab?.id, { action: 'showScanning', url });
-      const result = await analyzeMedia(url, type, settings.apiKey, settings.endpoint);
-      await saveHistory({ url, type, ...result });
-      await storageSet('tl_last_result', { url, type, ...result });
-      sendToTab(sender.tab?.id, { action: 'addBadge', url, ...result });
-      return { ok: true, result };
+      try {
+        const result = await analyzeMedia(url, type, settings.apiKey, settings.endpoint);
+        console.log('[bg:analyzeSingle] result:', result);
+        await saveHistory({ url, type, ...result });
+        await storageSet('tl_last_result', { url, type, ...result });
+        sendToTab(sender.tab?.id, { action: 'addBadge', url, ...result });
+        return { ok: true, result };
+      } catch (err) {
+        console.error('[bg:analyzeSingle] failed:', err.message);
+        throw err;
+      }
     }
 
     case 'analyzeBatch': {

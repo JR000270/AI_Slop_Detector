@@ -57,13 +57,6 @@
     if (!url) { stopSelection(); return; }
     stopSelection();
 
-    // TODO: uncomment when scanning is implemented
-    // chrome.runtime.sendMessage({ action: 'analyzeSingle', url, type });
-    // upsertBadge(url, 'scanning', null);
-
-    // Temporary: write directly to storage so the popup can read it without
-    // going through the service worker (avoids race if SW is asleep).
-    // TODO: remove this line when scanning is implemented
     chrome.storage.local.set({ tl_last_result: { url, type, score: null } });
   }
 

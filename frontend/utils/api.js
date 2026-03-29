@@ -20,9 +20,10 @@ function hashString(str) {
  * Classify a raw 0–1 score into a label and CSS class.
  * @param {number} score 0–100
  */
+// score = realness (0–100): higher means more likely real
 function classifyScore(score) {
-  if (score < 40) return { label: 'Likely Real', cls: 'green' };
-  if (score < 70) return { label: 'Uncertain', cls: 'yellow' };
+  if (score > 60) return { label: 'Likely Real', cls: 'green' };
+  if (score > 30) return { label: 'Uncertain', cls: 'yellow' };
   return { label: 'Likely AI-Generated', cls: 'red' };
 }
 
@@ -41,9 +42,13 @@ async function analyzeMedia(url, type, apiKey, endpoint = DEFAULT_ENDPOINT) {
 
   // 1. Check local cache first
   const cached = await storageGet(cacheKey);
-  if (cached) return { ...cached, source: 'cached' };
+  if (cached) {
+    console.log('[analyzeMedia] cache hit for', url);
+    return { ...cached, source: 'cached' };
+  }
 
-  // 2. Try OpenClaw local agent
+  // 2. Try backend
+  console.log('[analyzeMedia] calling backend:', `${endpoint}/image/url`, '| url:', url);
   let result = null;
   try {
     const res = await fetchWithTimeout(`${endpoint}/image/url`, {
@@ -52,15 +57,21 @@ async function analyzeMedia(url, type, apiKey, endpoint = DEFAULT_ENDPOINT) {
       body: JSON.stringify({ url }),
     }, 8000);
 
+    console.log('[analyzeMedia] backend response status:', res.status);
     if (!res.ok) throw new Error(`Backend ${res.status}`);
     const json = await res.json();
+    console.log('[analyzeMedia] backend response JSON:', json);
     result = normalizeResult(json, 'openclaw');
+    console.log('[analyzeMedia] normalized result:', result);
   } catch (openClawErr) {
+    console.warn('[analyzeMedia] backend failed:', openClawErr.message, '— trying direct API');
     // 3. Fallback: direct AI-or-Not API call
     try {
       result = await callDirectApi(url, type, apiKey);
       result.source = 'direct';
+      console.log('[analyzeMedia] direct API result:', result);
     } catch (directErr) {
+      console.error('[analyzeMedia] direct API also failed:', directErr.message);
       throw new ApiError(directErr.message, openClawErr.message);
     }
   }
@@ -72,30 +83,37 @@ async function analyzeMedia(url, type, apiKey, endpoint = DEFAULT_ENDPOINT) {
 
 /** Normalize various response shapes into { score, label, cls }. */
 function normalizeResult(json, source) {
-  // Support OpenClaw shape: { score } or { result: { score } } or { ai_probability }
-  const raw = json.score ?? json.ai_probability ?? json.result?.score ?? json.result?.ai_probability ?? 0;
-  const score = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
+  // AI-or-Not v2: { report: { ai_generated: { ai: { confidence: 0-1 } } } }
+  const raw =
+    json.report?.ai_generated?.ai?.confidence ??
+    json.score ??
+    json.ai_probability ??
+    json.result?.score ??
+    json.result?.ai_probability ??
+    0;
+  const aiScore = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
+  const score = 100 - aiScore; // invert: higher = more likely real
+  console.log('[normalizeResult] raw:', raw, '→ aiScore:', aiScore, '→ realScore:', score, '| json:', JSON.stringify(json).slice(0, 200));
   const { label, cls } = classifyScore(score);
   return { score, label, cls, source };
 }
 
-/** Placeholder for a direct AI-or-Not API call (replace with real endpoint). */
+/** Direct AI-or-Not v2 API call used as fallback when backend is unreachable. */
 async function callDirectApi(url, type, apiKey) {
   if (!apiKey) throw new Error('No API key configured');
-  // TODO: replace with actual AI-or-Not API endpoint and request format
-  const res = await fetchWithTimeout('https://api.aiornot.com/v1/reports/image', {
+  const res = await fetchWithTimeout('https://api.aiornot.com/v2/image/sync', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ object: { url } }),
+    body: JSON.stringify({ url }),
   }, 15000);
 
   if (res.status === 429) throw new Error('Rate limit exceeded');
   if (!res.ok) throw new Error(`API error ${res.status}`);
   const json = await res.json();
-  return normalizeResult(json.report ?? json, 'direct');
+  return normalizeResult(json, 'direct');
 }
 
 /**
