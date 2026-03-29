@@ -2,13 +2,15 @@ import asyncio
 import io
 import httpx
 import json
+import os
+import shutil
 import subprocess
+import tempfile
 from fastapi import HTTPException
 from google import genai
 from google.genai import types
 
 import sys
-import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from helper import get_ai_or_not_api_key, get_gemini_api_key
 
@@ -156,33 +158,35 @@ async def analyze_video_with_gemini(file) -> str:
         await asyncio.to_thread(_get_gemini_client().files.delete, name=uploaded.name)
 
 
-async def analyze_video_url_with_gemini(url: str) -> str:
-    is_youtube = "youtube.com" in url or "youtu.be" in url
+_SOCIAL_HOSTS = ("instagram.com", "tiktok.com", "vm.tiktok.com")
 
-    if is_youtube:
-        response = await asyncio.to_thread(
-            _get_gemini_client().models.generate_content,
-            model="gemini-2.5-flash",
-            contents=types.Content(parts=[
-                types.Part(file_data=types.FileData(file_uri=url)),
-                types.Part(text=_VIDEO_PROMPT),
-            ]),
-        )
-        return response.text.strip()
+def _is_social_platform(url: str) -> bool:
+    return any(host in url for host in _SOCIAL_HOSTS)
 
-    async with httpx.AsyncClient(follow_redirects=True, timeout=60.0) as client:
-        try:
-            resp = await client.get(url)
-            resp.raise_for_status()
-        except Exception:
-            raise HTTPException(status_code=400, detail="Could not fetch video from URL")
 
-    content_type = resp.headers.get("content-type", "video/mp4")
-    filename = url.split("?")[0].split("/")[-1] or "video.mp4"
+def _download_with_ytdlp(url: str, out_template: str) -> str:
+    """Synchronous yt-dlp download. Returns path to the downloaded file."""
+    tmpdir = os.path.dirname(out_template)
+    subprocess.run(
+        ["yt-dlp", "--no-playlist", "-o", out_template, url],
+        check=True,
+        capture_output=True,
+    )
+    files = os.listdir(tmpdir)
+    if not files:
+        raise RuntimeError("yt-dlp produced no output file")
+    return os.path.join(tmpdir, files[0])
+
+
+async def _upload_file_and_analyze(video_path: str, mime_type: str) -> str:
+    """Upload a local file to Gemini Files API and run analysis."""
     uploaded = await asyncio.to_thread(
         _get_gemini_client().files.upload,
-        file=io.BytesIO(resp.content),
-        config=types.UploadFileConfig(mime_type=content_type, display_name=filename),
+        file=video_path,
+        config=types.UploadFileConfig(
+            mime_type=mime_type,
+            display_name=os.path.basename(video_path),
+        ),
     )
     try:
         await _poll_until_active(uploaded.name)
@@ -197,3 +201,78 @@ async def analyze_video_url_with_gemini(url: str) -> str:
         return response.text.strip()
     finally:
         await asyncio.to_thread(_get_gemini_client().files.delete, name=uploaded.name)
+
+
+async def analyze_video_url_with_gemini(url: str) -> str:
+    # YouTube: Gemini handles natively, no download needed
+    if "youtube.com" in url or "youtu.be" in url:
+        response = await asyncio.to_thread(
+            _get_gemini_client().models.generate_content,
+            model="gemini-2.5-flash",
+            contents=types.Content(parts=[
+                types.Part(file_data=types.FileData(file_uri=url)),
+                types.Part(text=_VIDEO_PROMPT),
+            ]),
+        )
+        return response.text.strip()
+
+    # Social platforms always require yt-dlp; other URLs try direct fetch first
+    use_ytdlp = _is_social_platform(url)
+
+    if not use_ytdlp:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=60.0) as client:
+            try:
+                resp = await client.get(url)
+                resp.raise_for_status()
+            except Exception:
+                raise HTTPException(status_code=400, detail="Could not fetch video from URL")
+
+        content_type = resp.headers.get("content-type", "")
+        if content_type.startswith("text/") or "html" in content_type:
+            # Got a web page instead of video bytes — fall back to yt-dlp
+            use_ytdlp = True
+        else:
+            filename = url.split("?")[0].split("/")[-1] or "video.mp4"
+            uploaded = await asyncio.to_thread(
+                _get_gemini_client().files.upload,
+                file=io.BytesIO(resp.content),
+                config=types.UploadFileConfig(
+                    mime_type=content_type or "video/mp4",
+                    display_name=filename,
+                ),
+            )
+            try:
+                await _poll_until_active(uploaded.name)
+                response = await asyncio.to_thread(
+                    _get_gemini_client().models.generate_content,
+                    model="gemini-2.5-flash",
+                    contents=types.Content(parts=[
+                        types.Part(file_data=types.FileData(file_uri=uploaded.uri)),
+                        types.Part(text=_VIDEO_PROMPT),
+                    ]),
+                )
+                return response.text.strip()
+            finally:
+                await asyncio.to_thread(_get_gemini_client().files.delete, name=uploaded.name)
+
+    # yt-dlp download path (social platforms + HTML fallback)
+    tmpdir = tempfile.mkdtemp()
+    try:
+        try:
+            video_path = await asyncio.to_thread(
+                _download_with_ytdlp,
+                url,
+                os.path.join(tmpdir, "video.%(ext)s"),
+            )
+        except subprocess.CalledProcessError:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not download video — the URL may be private or unsupported",
+            )
+
+        ext = os.path.splitext(video_path)[1].lstrip(".").lower() or "mp4"
+        mime_type = f"video/{ext}"
+
+        return await _upload_file_and_analyze(video_path, mime_type)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
