@@ -151,10 +151,10 @@ function showPreviewOnly({ url, type }) {
   previewOnlyVid.hidden = !isVideo;
   if (isVideo) {
     previewOnlyVid.src = url || '';
-    previewOnlyVid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    previewOnlyVid.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
   } else {
     previewOnlyImg.src = url || '';
-    previewOnlyImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    previewOnlyImg.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
   }
   previewOnlyUrl.textContent = url ? truncate(url, 48) : '';
   previewOnlyUrl.title = url || '';
