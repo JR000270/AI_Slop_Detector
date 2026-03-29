@@ -13,12 +13,12 @@ const MAX_HISTORY = 50;
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'tl-check-image',
-    title: 'Check with TruthLens',
+    title: 'Check with Plato-AI',
     contexts: ['image'],
   });
   chrome.contextMenus.create({
     id: 'tl-check-video',
-    title: 'Check with TruthLens',
+    title: 'Check with Plato-AI',
     contexts: ['video'],
   });
 });
@@ -32,7 +32,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   // Store URL immediately so the popup can show a preview even if analysis fails.
   // TODO: remove score:null once scanning is implemented (storageSet below will overwrite it)
-  await chrome.storage.local.set({ tl_last_result: { url: mediaUrl, type: mediaType, score: null } });
+  await chrome.storage.local.set({ tl_last_result: { url: mediaUrl, type: mediaType } });
 
   sendToTab(tab.id, { action: 'showScanning', url: mediaUrl });
 
@@ -141,7 +141,7 @@ async function handle(msg, sender) {
 
     case 'checkConnection': {
       const settings = await getSettings();
-      const connected = await checkOpenClawConnection(settings.endpoint);
+      const connected = await checkBackendConnection(settings.endpoint);
       return { ok: true, connected };
     }
 
