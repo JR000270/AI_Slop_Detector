@@ -6,6 +6,7 @@ from routes import image, video
 app = FastAPI()
 app.include_router(image.router)
 app.include_router(video.router)
+app.include_router(factcheck.router)
 
 
 @app.get("/health")
@@ -18,7 +19,7 @@ async def health_check():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -33,7 +33,6 @@
 
   <!-- ── Scan tab ───────────────────────────────────────────────────────── -->
   <section class="tab-panel" id="tab-scan" role="tabpanel">
-
     <!-- Result area -->
     <div id="result-area">
 
@@ -66,10 +65,7 @@
         <p id="preview-only-url" class="result-url"></p>
         <p class="preview-only-note">Scanning not yet implemented</p>
         <br>
-        <div style="display:flex;gap:8px;">
-          <button id="btn-analyze-upload" class="btn btn--primary" disabled>Analyze</button>
-          <button id="btn-clear-result" class="btn">Clear</button>
-        </div>
+        <button id="btn-clear-result" class="btn">Clear</button>
       </div>
 
       <!-- Result state -->
@@ -96,6 +92,7 @@
         </div>
         <p id="result-url" class="result-url"></p>
         <p id="result-source" class="result-source"></p>
+        <button id="btn-clear-result-scan" class="btn btn--ghost btn--sm btn--danger" style="margin-top:8px">Clear</button>
       </div>
 
     </div><!-- /result-area -->
@@ -152,6 +149,7 @@
         </div>
         <p id="progress-label" class="progress-label">Scanning…</p>
       </div>
+      <p id = "domain-trust" hidden style="margin:8px 0 0 0; font-size:12px; text-align:center; display:flex; gap:6px; justify-content:center; align-items:center;"></p>
     </div>
 
     <hr class="divider" />
@@ -201,8 +199,20 @@
     </div>
 
     <div id="video-state-result" class="state" hidden>
-      <div class="video-analysis-wrap">
-        <p id="video-analysis-text" class="video-analysis-text"></p>
+      <div class="factcheck-card">
+        <div class="factcheck-header">
+          <div class="factcheck-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1L1.5 3.5V7c0 3 2.5 5 5.5 5.5C10 12 12.5 10 12.5 7V3.5L7 1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+              <path d="M4.5 7l1.8 1.8L9.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="factcheck-title">Fact Check</span>
+          <span id="video-verdict-badge" class="verdict-badge" hidden></span>
+          <button id="btn-clear-video" class="btn btn--ghost btn--sm btn--danger" style="margin-left:auto">Clear</button>
+        </div>
+        <div class="factcheck-divider"></div>
+        <div class="factcheck-body" id="video-analysis-body"></div>
       </div>
       <p id="video-result-source" class="result-url" style="margin-top:8px"></p>
     </div>

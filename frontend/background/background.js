@@ -13,12 +13,12 @@ const MAX_HISTORY = 50;
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'tl-check-image',
-    title: 'Check with TruthLens',
+    title: 'Check with Plato-AI',
     contexts: ['image'],
   });
   chrome.contextMenus.create({
     id: 'tl-check-video',
-    title: 'Check with TruthLens',
+    title: 'Check with Plato-AI',
     contexts: ['video'],
   });
 });
@@ -32,7 +32,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   // Store URL immediately so the popup can show a preview even if analysis fails.
   // TODO: remove score:null once scanning is implemented (storageSet below will overwrite it)
-  await chrome.storage.local.set({ tl_last_result: { url: mediaUrl, type: mediaType, score: null } });
+  await chrome.storage.local.set({ tl_last_result: { url: mediaUrl, type: mediaType } });
 
   sendToTab(tab.id, { action: 'showScanning', url: mediaUrl });
 
@@ -60,19 +60,12 @@ async function handle(msg, sender) {
     case 'analyzeSingle': {
       const { url, type } = msg;
       const settings = await getSettings();
-      console.log('[bg:analyzeSingle] url:', url, '| type:', type, '| endpoint:', settings.endpoint, '| hasApiKey:', !!settings.apiKey);
       sendToTab(sender.tab?.id, { action: 'showScanning', url });
-      try {
-        const result = await analyzeMedia(url, type, settings.apiKey, settings.endpoint);
-        console.log('[bg:analyzeSingle] result:', result);
-        await saveHistory({ url, type, ...result });
-        await storageSet('tl_last_result', { url, type, ...result });
-        sendToTab(sender.tab?.id, { action: 'addBadge', url, ...result });
-        return { ok: true, result };
-      } catch (err) {
-        console.error('[bg:analyzeSingle] failed:', err.message);
-        throw err;
-      }
+      const result = await analyzeMedia(url, type, settings.apiKey, settings.endpoint);
+      await saveHistory({ url, type, ...result });
+      await storageSet('tl_last_result', { url, type, ...result });
+      sendToTab(sender.tab?.id, { action: 'addBadge', url, ...result });
+      return { ok: true, result };
     }
 
     case 'analyzeBatch': {
@@ -91,11 +84,11 @@ async function handle(msg, sender) {
           sendToTab(tabId, { action: 'addBadge', url: item.url, ...result });
           done++;
           // Notify popup of progress
-          chrome.runtime.sendMessage({ action: 'batchProgress', done, total: items.length }).catch(() => { });
+          chrome.runtime.sendMessage({ action: 'batchProgress', done, total: items.length,score:result.score }).catch(() => { });
         } catch {
           sendToTab(tabId, { action: 'badgeError', url: item.url, message: 'Failed' });
           done++;
-          chrome.runtime.sendMessage({ action: 'batchProgress', done, total: items.length }).catch(() => { });
+          chrome.runtime.sendMessage({ action: 'batchProgress', done, total: items.length,score:null }).catch(() => { });
         }
       }
       return { ok: true, total: items.length };
@@ -141,7 +134,7 @@ async function handle(msg, sender) {
 
     case 'checkConnection': {
       const settings = await getSettings();
-      const connected = await checkOpenClawConnection(settings.endpoint);
+      const connected = await checkBackendConnection(settings.endpoint);
       return { ok: true, connected };
     }
 
