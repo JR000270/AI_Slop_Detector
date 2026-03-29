@@ -472,6 +472,7 @@ body {
 .btn--primary {
   background: var(--primary);
   color: #fff;
+  text-shadow: 0px 0px 1px black;
 }
 
 .btn--primary:hover {
