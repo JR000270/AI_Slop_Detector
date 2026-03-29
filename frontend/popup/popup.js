@@ -962,15 +962,21 @@ btnBatch.addEventListener('click', async () => {
     setTimeout(() => { batchProgress.hidden = true; }, 2500);
   };
 
-  const res = await msg({ action: 'analyzeBatch', tabId: tab.id, sensitivity: sensitivitySel.value });
-  if (res.error) {
+  try {
+    const sensitivity = sensitivitySel?.value || 'medium';
+    const res = await msg({ action: 'analyzeBatch', tabId: tab.id, sensitivity });
+    if (res.error) {
+      finish();
+      progressLabel.textContent = 'Error: ' + res.error;
+      return;
+    }
+    if (res.total === 0) {
+      finish();
+      progressLabel.textContent = 'No images found on this page.';
+    }
+  } catch (err) {
     finish();
-    progressLabel.textContent = 'Error: ' + res.error;
-    return;
-  }
-  if (res.total === 0) {
-    finish();
-    progressLabel.textContent = 'No images found on this page.';
+    progressLabel.textContent = 'Error: ' + (err.message || 'Scan failed');
   }
 });
 
