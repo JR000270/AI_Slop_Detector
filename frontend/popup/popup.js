@@ -8,7 +8,7 @@
 const $ = id => document.getElementById(id);
 
 const tabs = document.querySelectorAll('.tab');
-const panels = { scan: $('tab-scan'), video: $('tab-video'), settings: $('tab-settings') };
+const panels = { scan: $('tab-scan'), video: $('tab-video'), article: $('tab-article'), settings: $('tab-settings') };
 
 // Scan tab
 const stateEmpty       = $('state-empty');
@@ -71,6 +71,32 @@ const btnClearVideo     = $('btn-clear-video');
 // History tab
 const historyList = $('history-list');
 const historyEmpty = $('history-empty');
+
+// Article tab
+const articleTextarea       = $('article-textarea');
+const articleCharHint       = $('article-char-hint');
+const btnGrabPage           = $('btn-grab-page');
+const btnAnalyzeArticle     = $('btn-analyze-article');
+const articleStateEmpty     = $('article-state-empty');
+const articleStateLoading   = $('article-state-loading');
+const articleLoadingMsg     = $('article-loading-msg');
+const articleStateResult    = $('article-state-result');
+const articleStateError     = $('article-state-error');
+const articleErrorText      = $('article-error-text');
+const articleAiBadge        = $('article-ai-badge');
+const articleAiBarWrap      = $('article-ai-bar-wrap');
+const articleAiBar          = $('article-ai-bar');
+const articleAiScore        = $('article-ai-score');
+const articleAiSummary      = $('article-ai-summary');
+const articleAiSignals      = $('article-ai-signals');
+const articleFcBadge        = $('article-fc-badge');
+const articleFcExplanation  = $('article-fc-explanation');
+const articleFcClaims       = $('article-fc-claims');
+const articleSources        = $('article-sources');
+const articleSourcesList    = $('article-sources-list');
+const articleResultMeta     = $('article-result-meta');
+const btnCopyArticle        = $('btn-copy-article');
+const btnClearArticle       = $('btn-clear-article');
 
 // Settings tab
 const apiKeyInput = $('api-key-input');
@@ -281,6 +307,346 @@ function startScanLoadingCycle() {
 function stopScanLoadingCycle() {
   if (_scanLoadingTimer) { clearInterval(_scanLoadingTimer); _scanLoadingTimer = null; }
 }
+
+// ── Article Check ─────────────────────────────────────────────────────────
+
+const ARTICLE_LOADING_MSGS = [
+  'Analyzing text…',
+  'Detecting AI patterns…',
+  'Extracting claims…',
+  'Searching the web…',
+  'Fact-checking claims…',
+  'Almost done…',
+];
+let _articleLoadingTimer = null;
+
+function startArticleLoadingCycle() {
+  let i = 0;
+  articleLoadingMsg.textContent = ARTICLE_LOADING_MSGS[0];
+  _articleLoadingTimer = setInterval(() => {
+    i = (i + 1) % ARTICLE_LOADING_MSGS.length;
+    articleLoadingMsg.textContent = ARTICLE_LOADING_MSGS[i];
+  }, 2500);
+}
+
+function stopArticleLoadingCycle() {
+  if (_articleLoadingTimer) { clearInterval(_articleLoadingTimer); _articleLoadingTimer = null; }
+}
+
+function setArticleState(name) {
+  articleStateEmpty.hidden   = name !== 'empty';
+  articleStateLoading.hidden = name !== 'loading';
+  articleStateResult.hidden  = name !== 'result';
+  articleStateError.hidden   = name !== 'error';
+}
+
+function articleAiCls(verdict, score) {
+  if (verdict === 'likely_ai' || score >= 70) return 'red';
+  if (verdict === 'likely_real' || score < 30) return 'green';
+  return 'yellow';
+}
+
+function articleFcVerdictCls(v) {
+  if (!v) return 'unknown';
+  const lv = v.toLowerCase();
+  if (lv === 'true') return 'green';
+  if (lv === 'mostly true') return 'yellow';
+  if (lv === 'false') return 'red';
+  return 'yellow';
+}
+
+function assessmentCls(a) {
+  if (!a) return 'unknown';
+  const la = a.toLowerCase();
+  if (la === 'supported') return 'green';
+  if (la === 'contradicted') return 'red';
+  return 'unknown'; // unverifiable
+}
+
+function showArticleResult(aiResult, fcResult) {
+  stopArticleLoadingCycle();
+
+  // ── AI Detection card ──
+  if (!aiResult) {
+    articleAiBadge.hidden   = true;
+    articleAiBarWrap.hidden = true;
+    articleAiSummary.hidden = true;
+    articleAiSignals.hidden = true;
+  }
+
+  if (aiResult) {
+    const aiScore   = typeof aiResult.ai_score === 'number' ? aiResult.ai_score : 50;
+    const aiVerdict = aiResult.verdict || '';
+    const cls       = articleAiCls(aiVerdict, aiScore);
+    const aiLabel   = cls === 'red' ? 'Likely AI' : cls === 'green' ? 'Human-Written' : 'Uncertain';
+
+    articleAiBadge.textContent = aiLabel;
+    articleAiBadge.className   = `verdict-badge verdict-badge--${cls}`;
+    articleAiBadge.hidden      = false;
+
+    articleAiBar.style.width   = aiScore + '%';
+    articleAiBar.className     = `art-bar-fill art-bar-fill--${cls}`;
+    articleAiScore.textContent = aiScore + '%';
+    articleAiBarWrap.hidden    = false;
+
+    if (aiResult.summary) {
+      articleAiSummary.textContent = aiResult.summary;
+      articleAiSummary.hidden = false;
+    } else {
+      articleAiSummary.hidden = true;
+    }
+
+    const signals = Array.isArray(aiResult.ai_signals) ? aiResult.ai_signals : [];
+    if (signals.length) {
+      articleAiSignals.innerHTML = '';
+      signals.forEach(sig => {
+        const li = document.createElement('li');
+        li.className = 'art-signal';
+        li.textContent = sig;
+        articleAiSignals.appendChild(li);
+      });
+      articleAiSignals.hidden = false;
+    } else {
+      articleAiSignals.hidden = true;
+    }
+  }
+
+  // ── Fact Check card ──
+  if (fcResult) {
+    const fcCls = articleFcVerdictCls(fcResult.verdict);
+    articleFcBadge.textContent = fcResult.verdict || 'Unverified';
+    articleFcBadge.className   = `verdict-badge verdict-badge--${fcCls}`;
+    articleFcBadge.hidden      = false;
+
+    if (fcResult.explanation) {
+      articleFcExplanation.textContent = fcResult.explanation;
+      articleFcExplanation.hidden = false;
+    } else {
+      articleFcExplanation.hidden = true;
+    }
+
+    // Claims
+    const claims = Array.isArray(fcResult.claims) ? fcResult.claims : [];
+    if (claims.length) {
+      articleFcClaims.innerHTML = '';
+      claims.forEach(claim => {
+        // factcheck_service returns claims as plain strings (extracted claims)
+        // text_service returns claims as objects with {text, assessment, explanation}
+        const claimText = typeof claim === 'string' ? claim : (claim.text || '');
+        const assessment = typeof claim === 'object' ? (claim.assessment || '') : '';
+        const acls = assessmentCls(assessment);
+        const li = document.createElement('li');
+        li.className = 'vclaim';
+        li.innerHTML =
+          `<span class="vclaim__dot vclaim__dot--${acls}" aria-hidden="true"></span>` +
+          `<span class="vclaim__text">${escAttr(claimText)}</span>` +
+          (assessment ? `<span class="vclaim__verdict vclaim__verdict--${acls}">${escAttr(assessment)}</span>` : '');
+        articleFcClaims.appendChild(li);
+      });
+      articleFcClaims.hidden = false;
+    } else {
+      articleFcClaims.hidden = true;
+    }
+
+    // Sources
+    const articles = Array.isArray(fcResult.articles) ? fcResult.articles : [];
+    if (articles.length) {
+      articleSourcesList.innerHTML = '';
+      articles.forEach(({ title, url }) => {
+        const li = document.createElement('li');
+        li.className = 'art-source';
+        const a = document.createElement('a');
+        a.href = url;
+        a.textContent = title || url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        li.appendChild(a);
+        articleSourcesList.appendChild(li);
+      });
+      articleSources.hidden = false;
+    } else {
+      articleSources.hidden = true;
+    }
+  } else {
+    articleFcBadge.hidden      = true;
+    articleFcExplanation.hidden = true;
+    articleFcClaims.hidden     = true;
+    articleSources.hidden      = true;
+  }
+
+  const charCount = articleTextarea.value.length;
+  articleResultMeta.textContent = `${charCount.toLocaleString()} chars analyzed`;
+
+  setArticleState('result');
+}
+
+// ── Textarea char counter ─────────────────────────────────────────────────
+
+articleTextarea.addEventListener('input', () => {
+  const len = articleTextarea.value.length;
+  articleCharHint.textContent = `${len.toLocaleString()} / 15 000 chars`;
+  articleCharHint.classList.toggle('art-char-hint--warn', len > 12000);
+  btnAnalyzeArticle.disabled = len === 0;
+});
+
+// ── Grab current page ─────────────────────────────────────────────────────
+
+btnGrabPage.addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+
+  btnGrabPage.disabled = true;
+  btnGrabPage.textContent = 'Grabbing…';
+
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const selectors = [
+          'article', '[role="main"]', 'main',
+          '.article-body', '.article-content', '.post-content',
+          '.entry-content', '.story-body', '.post-body', '#article-body',
+          '.content-body', '.page-content',
+        ];
+        let el = null;
+        for (const sel of selectors) {
+          el = document.querySelector(sel);
+          if (el && el.innerText && el.innerText.trim().length > 200) break;
+          el = null;
+        }
+        if (!el) el = document.body;
+        const raw = (el.innerText || '').trim();
+        // Collapse excess whitespace / blank lines
+        return raw.replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').slice(0, 15000);
+      },
+    });
+
+    const text = result?.result || '';
+    if (!text) {
+      articleErrorText.textContent = 'Could not extract text from this page.';
+      setArticleState('error');
+      return;
+    }
+
+    articleTextarea.value = text;
+    // Trigger input event to update counter and enable button
+    articleTextarea.dispatchEvent(new Event('input'));
+  } catch (err) {
+    articleErrorText.textContent = err.message || 'Could not access this page.';
+    setArticleState('error');
+  } finally {
+    btnGrabPage.disabled = false;
+    btnGrabPage.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4" />
+      <line x1="4" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+      <line x1="4" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+      <line x1="4" y1="10" x2="7" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+    </svg> Grab Current Page`;
+  }
+});
+
+// ── Analyze article ───────────────────────────────────────────────────────
+
+btnAnalyzeArticle.addEventListener('click', async () => {
+  const text = articleTextarea.value.trim();
+  if (!text) return;
+
+  const settings = await msg({ action: 'getSettings' });
+  const endpoint = settings.settings?.endpoint || 'http://localhost:8000';
+
+  btnAnalyzeArticle.disabled = true;
+  setArticleState('loading');
+  startArticleLoadingCycle();
+
+  try {
+    // Run AI detection and fact-check in parallel
+    const [aiRes, fcRes] = await Promise.allSettled([
+      fetch(`${endpoint}/text/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      }).then(r => { if (!r.ok) throw new Error(`AI detection error ${r.status}`); return r.json(); }),
+
+      fetch(`${endpoint}/factcheck/text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      }).then(r => { if (!r.ok) throw new Error(`Fact-check error ${r.status}`); return r.json(); }),
+    ]);
+
+    // At least one must succeed
+    if (aiRes.status === 'rejected' && fcRes.status === 'rejected') {
+      throw new Error(aiRes.reason?.message || 'Analysis failed');
+    }
+
+    showArticleResult(
+      aiRes.status === 'fulfilled' ? aiRes.value : null,
+      fcRes.status === 'fulfilled' ? fcRes.value : null,
+    );
+  } catch (err) {
+    stopArticleLoadingCycle();
+    articleErrorText.textContent = err.message || 'Analysis failed. Is the backend running?';
+    setArticleState('error');
+  } finally {
+    btnAnalyzeArticle.disabled = false;
+  }
+});
+
+// ── Copy article results ──────────────────────────────────────────────────
+
+btnCopyArticle.addEventListener('click', () => {
+  const lines = [];
+
+  if (!articleAiBadge.hidden)
+    lines.push(`AI Detection: ${articleAiBadge.textContent} (${articleAiScore.textContent})`);
+
+  if (!articleAiSignals.hidden) {
+    const sigs = [...articleAiSignals.querySelectorAll('.art-signal')].map(el => el.textContent.trim());
+    if (sigs.length) lines.push(`Signals: ${sigs.join(', ')}`);
+  }
+
+  lines.push('');
+
+  if (!articleFcBadge.hidden)
+    lines.push(`Fact Check: ${articleFcBadge.textContent}`);
+
+  if (!articleFcExplanation.hidden)
+    lines.push(articleFcExplanation.textContent);
+
+  if (!articleFcClaims.hidden) {
+    lines.push('');
+    articleFcClaims.querySelectorAll('.vclaim').forEach(li => {
+      const text    = li.querySelector('.vclaim__text')?.textContent    || '';
+      const verdict = li.querySelector('.vclaim__verdict')?.textContent || '';
+      lines.push(`• ${text}${verdict ? ' — ' + verdict : ''}`);
+    });
+  }
+
+  if (!articleSources.hidden) {
+    lines.push('');
+    lines.push('Sources:');
+    articleSourcesList.querySelectorAll('.art-source a').forEach(a => {
+      lines.push(`  ${a.href}`);
+    });
+  }
+
+  navigator.clipboard.writeText(lines.join('\n').trim()).then(() => {
+    const orig = btnCopyArticle.innerHTML;
+    btnCopyArticle.textContent = 'Copied!';
+    setTimeout(() => { btnCopyArticle.innerHTML = orig; }, 1800);
+  }).catch(() => {});
+});
+
+// ── Clear article ─────────────────────────────────────────────────────────
+
+btnClearArticle.addEventListener('click', () => {
+  stopArticleLoadingCycle();
+  articleTextarea.value = '';
+  articleCharHint.textContent = '0 / 15 000 chars';
+  articleCharHint.classList.remove('art-char-hint--warn');
+  btnAnalyzeArticle.disabled = true;
+  setArticleState('empty');
+});
 
 // ── Render result ─────────────────────────────────────────────────────────
 
