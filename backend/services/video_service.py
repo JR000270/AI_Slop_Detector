@@ -112,14 +112,25 @@ def _get_gemini_client():
     return _gemini_client
 
 _VIDEO_PROMPT = """\
-Analyze this video and respond in the following format exactly:
+Analyze this video carefully. Respond using EXACTLY the following format — \
+no extra headings, no markdown, no preamble:
 
-AI DETECTION: <Yes / No / Uncertain> — <one sentence reason>
+AI DETECTION: <Yes / No / Uncertain> — <one sentence explaining the visual or audio evidence>
 
 FACT CHECK:
-- Verdict: <True / False / Misleading / Unverified>
-- Summary: <2-3 sentences explaining what claims are made and whether they are accurate>
-- Key claims: <bullet list of up to 3 specific claims from the video and whether each is supported or contradicted by known facts>
+Verdict: <True / False / Misleading / Unverified>
+Summary: <2-3 sentences: what specific claims does the video make, and are they accurate?>
+Claims:
+• <exact claim from video> — <True / False / Uncertain>
+• <exact claim from video> — <True / False / Uncertain>
+• <exact claim from video> — <True / False / Uncertain>
+
+RULES:
+- Output ONLY the above structure. Do not add extra text before or after.
+- If the video makes no specific verifiable claims, write one Claims bullet: \
+"No specific verifiable claims detected — N/A"
+- Use the em dash (—) as the separator between a claim and its verdict.
+- Limit claims to the 3 most important ones.
 """
 
 
