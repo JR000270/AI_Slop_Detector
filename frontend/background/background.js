@@ -17,12 +17,12 @@ const MAX_HISTORY = 50;
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'tl-check-image',
-    title: 'Check with Plato-AI',
+    title: 'Check with Slop-Detector',
     contexts: ['image'],
   });
   chrome.contextMenus.create({
     id: 'tl-check-video',
-    title: 'Check with Plato-AI',
+    title: 'Check with Slop-Detector',
     contexts: ['video'],
   });
 });

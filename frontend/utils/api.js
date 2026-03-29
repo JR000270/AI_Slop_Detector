@@ -28,14 +28,14 @@ function classifyScore(score) {
 }
 
 /**
- * Send one media URL to the OpenClaw local agent, falling back to a
- * configurable direct endpoint if OpenClaw is unreachable.
+ * Send one media URL to the Slop-Detector local backend, falling back to a
+ * configurable direct endpoint if the backend is unreachable.
  *
  * @param {string} url        Public URL of the image / video
  * @param {'image'|'video'}  type
  * @param {string} apiKey     User's AI-or-Not API key
- * @param {string} endpoint   OpenClaw endpoint (configurable)
- * @returns {Promise<{score:number, label:string, cls:string, source:'openclaw'|'direct'|'cached'}>}
+ * @param {string} endpoint   Slop-Detector backend endpoint (configurable)
+ * @returns {Promise<{score:number, label:string, cls:string, source:'backend'|'direct'|'cached'}>}
  */
 async function analyzeMedia(url, type, apiKey, endpoint = DEFAULT_ENDPOINT) {
   const cacheKey = 'cache_' + hashString(url);
@@ -61,10 +61,10 @@ async function analyzeMedia(url, type, apiKey, endpoint = DEFAULT_ENDPOINT) {
     if (!res.ok) throw new Error(`Backend ${res.status}`);
     const json = await res.json();
     console.log('[analyzeMedia] backend response JSON:', json);
-    result = normalizeResult(json, 'openclaw');
+    result = normalizeResult(json, 'backend');
     console.log('[analyzeMedia] normalized result:', result);
-  } catch (openClawErr) {
-    console.warn('[analyzeMedia] backend failed:', openClawErr.message, '— trying direct API');
+  } catch (backendErr) {
+    console.warn('[analyzeMedia] backend failed:', backendErr.message, '— trying direct API');
     // 3. Fallback: direct AI-or-Not API call
     try {
       result = await callDirectApi(url, type, apiKey);
@@ -72,7 +72,7 @@ async function analyzeMedia(url, type, apiKey, endpoint = DEFAULT_ENDPOINT) {
       console.log('[analyzeMedia] direct API result:', result);
     } catch (directErr) {
       console.error('[analyzeMedia] direct API also failed:', directErr.message);
-      throw new ApiError(directErr.message, openClawErr.message);
+      throw new ApiError(directErr.message, backendErr.message);
     }
   }
 
@@ -203,11 +203,11 @@ function storageSet(key, value, ttl) {
   });
 }
 
-/** Error that carries both OpenClaw and direct-API error messages. */
+/** Error that carries both backend and direct-API error messages. */
 class ApiError extends Error {
-  constructor(message, openClawMessage) {
+  constructor(message, backendMessage) {
     super(message);
     this.name = 'ApiError';
-    this.openClawMessage = openClawMessage;
+    this.backendMessage = backendMessage;
   }
 }

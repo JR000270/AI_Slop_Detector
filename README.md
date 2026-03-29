@@ -1,28 +1,42 @@
-# Plato AI
+# Slop-Detector
 
-A cross-browser extension that empowers users to detect AI-generated images and videos directly in their browsing experience.
+A cross-browser extension + local backend for detecting AI-generated images, videos, and articles — with built-in fact-checking powered by Google Gemini and web search grounding.
 
 ## Overview
 
-AI-generated media is increasingly realistic and widespread, making it nearly impossible for the average person to distinguish real from fake content. Plato AI addresses this by giving users instant, on-demand AI detection scores for any image or video — right from their browser context menu.
+AI-generated media is increasingly realistic and widespread. Slop-Detector gives users instant, on-demand detection scores and fact-checks for any image, video, or article — right from their browser. It combines the AI-or-Not API for confidence scoring with Gemini-powered analysis for deeper inspection, running everything through a local FastAPI backend so API keys never touch the browser.
 
-By integrating with the AI-or-Not API and Google Gemini, users can right-click any image or video on a webpage and receive a confidence score indicating the likelihood that the content is real. The higher the score, the more likely the content is genuine.
-
-**Target users:** Journalists, educators, social media users, fact-checkers, and anyone concerned about the authenticity of online media.
+**Target users:** Journalists, researchers, educators, fact-checkers, and anyone who wants to verify the authenticity of online media.
 
 ---
 
 ## Features
 
-- **Right-click detection** — context menu on any image or video triggers an instant scan
-- **Page picker** — click any image on a page interactively with a visual overlay
-- **File upload** — upload an image or video from your device for local analysis
-- **Video analysis** — paste a video URL for AI-powered content analysis via Gemini
-- **Batch scan** — scan all images on the current page at once with configurable sensitivity
-- **Confidence gauge** — visual arc gauge showing realness score (0% = AI-generated, 100% = real)
-- **Scan history** — browsing history of previously scanned media with scores and timestamps
-- **Auto-scan** — optional proactive scanning on page load
-- **Local backend** — all API calls route through a local FastAPI server, keeping your API keys off the browser
+### Image Detection
+- **Right-click** any image to scan it instantly via context menu
+- **Page picker** — interactively select any image with a visual overlay
+- **File upload** — upload an image from your device
+- **Batch scan** — scan every image on the current page at once with configurable sensitivity
+- **Auto-scan** — optionally scan images automatically on page load
+- **Inline badges** — color-coded confidence badges appear directly on the page
+
+### Video Analysis
+- **URL analysis** — paste any YouTube, TikTok, or direct video URL
+- **File upload** — upload a video from your device (max 200 MB, 30 seconds)
+- **Gemini analysis** — AI detection + structured fact-check of key claims with verdicts
+- **Too-long handling** — videos over 60 seconds return a download token for a trimmed clip
+
+### Article Fact-Check
+- **Grab current page** — extracts article text from the active tab automatically
+- **Paste text** — paste any article, headline, or content directly
+- **AI detection** — score (0–100), writing pattern signals, and plain-English summary
+- **Fact-check** — extracts claims, verifies them via Gemini with Google Search grounding, returns a verdict and source articles
+
+### General
+- **Scan history** — up to 50 past results with thumbnails, scores, and timestamps
+- **Result caching** — 7-day TTL per URL so repeated scans are instant
+- **Backend fallback** — if the local backend is unreachable, falls back directly to the AI-or-Not API
+- **Connection indicator** — live status dot shows whether the backend is reachable
 
 ---
 
@@ -30,27 +44,34 @@ By integrating with the AI-or-Not API and Google Gemini, users can right-click a
 
 ```
 AI_Slop_Detector/
-├── backend/                  # FastAPI local backend (OpenClaw)
-│   ├── main.py               # App entry point, CORS, health endpoint
-│   ├── helper.py             # API key loading utilities
+├── backend/
+│   ├── main.py                 # FastAPI app, CORS, health endpoint
+│   ├── helper.py               # API key loading from apikeys.env
+│   ├── apikeys.env             # API keys (not committed)
+│   ├── pyproject.toml          # Python dependencies (uv)
 │   ├── routes/
-│   │   └── image.py          # /image endpoints (upload, URL, Gemini)
-│   ├── services/
-│   │   └── image_service.py  # AI-or-Not + Gemini API logic
-│   └── apikeys.env           # API keys (not committed)
-└── frontend/                 # Browser extension (Manifest V3)
-    ├── manifest.json
+│   │   ├── image.py            # /image endpoints
+│   │   ├── video.py            # /video endpoints
+│   │   ├── text.py             # /text endpoints
+│   │   └── factcheck.py        # /factcheck endpoints
+│   └── services/
+│       ├── image_service.py    # AI-or-Not + Gemini image logic
+│       ├── video_service.py    # AI-or-Not + Gemini video logic
+│       ├── text_service.py     # Gemini text AI detection
+│       └── factcheck_service.py# Gemini claim extraction + web-grounded fact-check
+└── frontend/
+    ├── manifest.json           # MV3 extension manifest
     ├── background/
-    │   └── background.js     # Service worker, message bus, context menu
+    │   └── background.js       # Service worker, message bus, context menu
     ├── content/
-    │   ├── content.js        # Page overlay, badge rendering, image picker
-    │   └── content.css
+    │   ├── content.js          # Page badges, element picker, image collection
+    │   └── content.css         # Badge and overlay styles
     ├── popup/
-    │   ├── popup.html
-    │   ├── popup.js          # Popup UI logic
-    │   └── popup.css
+    │   ├── popup.html          # Popup UI — Image, Video, Article tabs
+    │   ├── popup.js            # Tab logic, API calls, result rendering
+    │   └── popup.css           # Popup styles with dark mode support
     └── utils/
-        └── api.js            # Shared fetch utilities, score normalization, cache
+        └── api.js              # Fetch utilities, score normalization, caching
 ```
 
 ---
@@ -60,17 +81,18 @@ AI_Slop_Detector/
 ### Prerequisites
 
 - Python 3.10+
-- A modern browser (Chrome or Firefox)
+- [uv](https://github.com/astral-sh/uv) (or pip)
+- Chrome or Firefox
 - [AI-or-Not API key](https://aiornot.com)
-- Google Gemini API key (for video analysis)
+- Google Gemini API key
 
 ### Backend
 
 ```bash
 cd backend
-python -m venv .venv
+uv venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+uv sync
 ```
 
 Create `backend/apikeys.env`:
@@ -86,7 +108,9 @@ Start the server:
 uvicorn main:app --reload
 ```
 
-The backend runs at `http://localhost:8000`. Confirm it's live at `http://localhost:8000/health`.
+Confirm it's running: `http://localhost:8000/health`
+
+> **Optional:** Install `ffprobe` (part of FFmpeg) to enable video duration enforcement on uploads. Install `yt-dlp` for downloading YouTube/TikTok/Instagram videos for fact-checking.
 
 ### Frontend
 
@@ -104,27 +128,77 @@ The backend runs at `http://localhost:8000`. Confirm it's live at `http://localh
 
 ## Configuration
 
-Open the extension popup and go to the **Settings** tab:
+Open the extension popup. Settings are accessible via the browser's extension settings or the Settings tab (if present):
 
 | Setting | Description | Default |
 |---|---|---|
-| AI-or-Not API Key | Direct fallback key if backend is unreachable | — |
-| OpenClaw Endpoint | URL of the local FastAPI backend | `http://localhost:8000` |
+| AI-or-Not API Key | Direct fallback key used when the backend is unreachable | — |
+| Backend Endpoint | URL of the local FastAPI server | `http://localhost:8000` |
 | Auto-scan on page load | Proactively scan images when a page loads | Off |
-| Sensitivity | Minimum image size to include in batch/auto scans | Medium |
+| Sensitivity | Minimum image size included in batch/auto scans (High: 0px, Medium: 150px, Low: 350px) | Medium |
+
+**Keyboard shortcut:** `Ctrl+Shift+U` / `Cmd+Shift+U` — open the popup
 
 ---
 
 ## API Endpoints
 
+### Health
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/health` | Health check |
-| `POST` | `/image/` | Analyze an uploaded image file |
-| `POST` | `/image/url` | Analyze an image by URL |
-| `POST` | `/image/gemini/url` | Describe an image via Gemini |
-| `POST` | `/image/gemini/upload` | Describe an uploaded image via Gemini |
-| `POST` | `/image/gemini/youtube` | Analyze a video URL via Gemini |
+| `GET` | `/health` | Returns `{"status": "ok", "timestamp": "..."}` |
+
+### Image (`/image`)
+| Method | Path | Body | Description |
+|---|---|---|---|
+| `POST` | `/image/` | `file: UploadFile` | Detect AI in uploaded image (AI-or-Not) |
+| `POST` | `/image/url` | `{"url": "..."}` | Detect AI in image by URL (AI-or-Not) |
+| `POST` | `/image/gemini/upload` | `file: UploadFile` | Describe uploaded image with Gemini |
+| `POST` | `/image/gemini/url` | `{"url": "..."}` | Describe image by URL with Gemini |
+| `POST` | `/image/gemini/youtube` | `{"url": "..."}` | Analyze YouTube video with Gemini |
+
+### Video (`/video`)
+| Method | Path | Body | Description |
+|---|---|---|---|
+| `POST` | `/video/` | `file: UploadFile` | Detect AI in uploaded video (max 200 MB, 30s) |
+| `POST` | `/video/url` | `{"url": "..."}` | Detect AI in video by URL (AI-or-Not) |
+| `POST` | `/video/gemini/upload` | `file: UploadFile` | Upload video → Gemini AI detection + fact-check |
+| `POST` | `/video/gemini/url` | `{"url": "..."}` | Video URL → Gemini AI detection + fact-check |
+
+### Text (`/text`)
+| Method | Path | Body | Description |
+|---|---|---|---|
+| `POST` | `/text/analyze` | `{"text": "...", "url": "...?"}` | AI detection on text — returns score, signals, claims, summary |
+
+### Fact-Check (`/factcheck`)
+| Method | Path | Body | Description |
+|---|---|---|---|
+| `POST` | `/factcheck/text` | `{"text": "..."}` | Extract claims + web-grounded fact-check |
+| `POST` | `/factcheck/video/url` | `{"url": "..."}` | Download video → extract claims → fact-check (returns download token if >60s) |
+| `POST` | `/factcheck/video` | `file: UploadFile` | Upload video → extract claims → fact-check |
+| `GET` | `/factcheck/video/download/{token}` | — | Download a trimmed video clip |
+
+#### Text Analysis Response
+```json
+{
+  "verdict": "likely_real | uncertain | likely_ai",
+  "ai_score": 42,
+  "ai_signals": ["no named sources", "generic list structure"],
+  "claims": [{"text": "...", "assessment": "supported | contradicted | unverifiable", "explanation": "..."}],
+  "summary": "Plain English summary of findings."
+}
+```
+
+#### Fact-Check Response
+```json
+{
+  "claims": ["Claim one", "Claim two"],
+  "factuality_score": 75,
+  "verdict": "Mostly True",
+  "explanation": "2–3 sentence summary.",
+  "articles": [{"title": "...", "url": "...", "snippet": ""}]
+}
+```
 
 ---
 
@@ -134,9 +208,18 @@ Scores represent the **likelihood the content is real** (not AI-generated):
 
 | Score | Label | Meaning |
 |---|---|---|
-| 61 – 100% | Likely Real | Low AI signal detected |
-| 31 – 60% | Uncertain | Mixed signals |
-| 0 – 30% | Likely AI-Generated | High AI signal detected |
+| 61–100% | Likely Real | Low AI signal |
+| 31–60% | Uncertain | Mixed signals |
+| 0–30% | Likely AI-Generated | High AI signal |
+
+For **fact-check verdicts:**
+
+| Verdict | Factuality Score |
+|---|---|
+| True | 86–100 |
+| Mostly True | 61–85 |
+| Uncertain | 31–60 |
+| False | 0–30 |
 
 ---
 
@@ -144,8 +227,14 @@ Scores represent the **likelihood the content is real** (not AI-generated):
 
 | Layer | Technology |
 |---|---|
-| Extension | Vanilla JS, Manifest V3 |
-| Backend | Python, FastAPI, Uvicorn |
-| Image detection | AI-or-Not API v2 |
-| Video analysis | Google Gemini |
-| HTTP client | httpx (backend), fetch (frontend) |
+| Browser extension | Vanilla JS, Manifest V3 |
+| Backend framework | Python, FastAPI, Uvicorn |
+| Image/video detection | AI-or-Not API v2 |
+| AI analysis & fact-check | Google Gemini 2.5 Flash |
+| Web search grounding | Gemini Google Search tool |
+| Video download | yt-dlp |
+| Video metadata | ffprobe (optional) |
+| HTTP client (backend) | httpx |
+| HTTP client (frontend) | fetch API |
+| Image processing | Pillow |
+| Data validation | Pydantic v2 |
