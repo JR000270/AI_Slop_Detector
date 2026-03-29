@@ -530,3 +530,81 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ── Fact-check card ─────────────────────────────────────────────────────── */
+
+.factcheck-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+
+.factcheck-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--primary-light);
+}
+
+.factcheck-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.factcheck-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  flex: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.verdict-badge--green  { background: var(--green-bg);  color: var(--green); }
+.verdict-badge--yellow { background: var(--yellow-bg); color: var(--yellow); }
+.verdict-badge--red    { background: var(--red-bg);    color: var(--red); }
+
+.factcheck-divider {
+  height: 1px;
+  background: var(--border);
+}
+
+.factcheck-body {
+  padding: 12px 14px;
+  max-height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.factcheck-para {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--slate-mid);
+  word-break: break-word;
+}
+.factcheck-para + .factcheck-para {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
