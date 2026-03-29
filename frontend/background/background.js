@@ -114,8 +114,15 @@ async function handle(msg, sender) {
     case 'analyzeVideoContent': {
       const { url } = msg;
       const settings = await getSettings();
-      const text = await analyzeVideoContent(url, settings.apiKey, settings.endpoint);
-      return { ok: true, text };
+      const data = await analyzeVideoContent(url, settings.apiKey, settings.endpoint);
+      return { ok: true, ...data };
+    }
+
+    case 'analyzeVideoDetection': {
+      const { url } = msg;
+      const settings = await getSettings();
+      const detection = await analyzeVideoDetection(url, settings.endpoint);
+      return { ok: true, detection };
     }
 
     case 'getHistory':

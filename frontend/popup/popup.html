@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TruthLens</title>
+  <title>PLATO-AI</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 
@@ -27,7 +27,6 @@
   <nav class="tabs" role="tablist">
     <button class="tab tab--active" data-tab="scan" role="tab" aria-selected="true">Image Check</button>
     <button class="tab" data-tab="video" role="tab">Video Check</button>
-    <button class="tab" data-tab="history" role="tab">History</button>
     <button class="tab" data-tab="settings" role="tab">Settings</button>
   </nav>
 
@@ -95,7 +94,8 @@
         </div>
         <p id="result-url" class="result-url"></p>
         <p id="result-source" class="result-source"></p>
-        <button id="btn-clear-result-scan" class="btn btn--ghost btn--sm btn--danger" style="margin-top:8px">Clear</button>
+        <button id="btn-clear-result-scan" class="btn btn--ghost btn--sm btn--danger"
+          style="margin-top:8px">Clear</button>
       </div>
 
     </div><!-- /result-area -->
@@ -202,22 +202,56 @@
     </div>
 
     <div id="video-state-result" class="state" hidden>
-      <div class="factcheck-card">
-        <div class="factcheck-header">
-          <div class="factcheck-icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1L1.5 3.5V7c0 3 2.5 5 5.5 5.5C10 12 12.5 10 12.5 7V3.5L7 1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-              <path d="M4.5 7l1.8 1.8L9.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <span class="factcheck-title">Fact Check</span>
-          <span id="video-verdict-badge" class="verdict-badge" hidden></span>
-          <button id="btn-clear-video" class="btn btn--ghost btn--sm btn--danger" style="margin-left:auto">Clear</button>
-        </div>
-        <div class="factcheck-divider"></div>
-        <div class="factcheck-body" id="video-analysis-body"></div>
+      <!-- AI detection row (shown when available) -->
+      <div id="video-detection-row" class="video-detection-row" hidden>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.4" />
+          <path d="M4 6l1.5 1.5L8.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+        <span class="video-detection-label">AI Detection</span>
+        <span id="video-detection-badge" class="verdict-badge"></span>
+        <span id="video-detection-score" class="video-detection-score"></span>
       </div>
-      <p id="video-result-source" class="result-url" style="margin-top:8px"></p>
+      <!-- Fact-check card -->
+      <div id="video-factcheck-wrap">
+        <div class="factcheck-card">
+          <div class="factcheck-header">
+            <div class="factcheck-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1L1.5 3.5V7c0 3 2.5 5 5.5 5.5C10 12 12.5 10 12.5 7V3.5L7 1z" stroke="currentColor"
+                  stroke-width="1.4" stroke-linejoin="round" />
+                <path d="M4.5 7l1.8 1.8L9.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </div>
+            <span class="factcheck-title">Fact Check</span>
+            <span id="video-verdict-badge" class="verdict-badge" hidden></span>
+          </div>
+          <div class="factcheck-divider"></div>
+          <div class="factcheck-body" id="video-analysis-body"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <p id="video-result-source" class="result-url" style="margin-top:0"></p>
+        <button id="btn-clear-video" class="btn btn--ghost btn--sm btn--danger">Clear</button>
+      </div>
+    </div>
+
+    <div id="video-state-toolong" class="state" hidden>
+      <div class="toolong-card">
+        <p id="video-toolong-text" class="toolong-text"></p>
+        <a id="btn-download-clip" class="btn btn--secondary btn--full" href="#" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M7 1v8M4 10l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <path d="M1 11v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" />
+          </svg>
+          Download Clip
+        </a>
+        <button id="btn-clear-toolong" class="btn btn--ghost btn--sm" style="margin-top:6px;width:100%">Back</button>
+      </div>
     </div>
 
     <div id="video-state-error" class="state" hidden>
@@ -226,14 +260,6 @@
 
   </section>
 
-  <!-- ── History tab ─────────────────────────────────────────────────────── -->
-  <section class="tab-panel" id="tab-history" role="tabpanel" hidden>
-    <div id="history-empty" class="state" hidden>
-      <p class="empty-title">No history yet</p>
-      <p class="empty-sub">Scanned items will appear here.</p>
-    </div>
-    <ul id="history-list" class="history-list" aria-label="Scan history"></ul>
-  </section>
 
   <!-- ── Settings tab ────────────────────────────────────────────────────── -->
   <section class="tab-panel" id="tab-settings" role="tabpanel" hidden>
