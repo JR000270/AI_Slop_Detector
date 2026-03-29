@@ -26,7 +26,8 @@ const resultPreviewImg = $('result-preview-img');
 const resultPreviewVid = $('result-preview-vid');
 const resultUrl      = $('result-url');
 const resultSource   = $('result-source');
-const btnClearResult = $('btn-clear-result');
+const btnClearResult     = $('btn-clear-result');
+const btnClearResultScan = $('btn-clear-result-scan');
 const btnPick        = $('btn-pick');
 const btnUpload      = $('btn-upload');
 const fileInput      = $('file-input');
@@ -47,8 +48,10 @@ const videoStateEmpty    = $('video-state-empty');
 const videoStateLoading  = $('video-state-loading');
 const videoStateResult   = $('video-state-result');
 const videoStateError    = $('video-state-error');
-const videoAnalysisText  = $('video-analysis-text');
+const videoAnalysisBody  = $('video-analysis-body');
+const videoVerdictBadge  = $('video-verdict-badge');
 const videoResultSource  = $('video-result-source');
+const btnClearVideo      = $('btn-clear-video');
 const videoErrorText     = $('video-error-text');
 
 // History tab
@@ -221,6 +224,14 @@ function showResult({ score, label, cls, url, type, source }) {
 
 btnClearResult.addEventListener('click', async () => {
   await chrome.storage.local.remove('tl_last_result');
+  showState('empty');
+});
+
+btnClearResultScan.addEventListener('click', async () => {
+  await chrome.storage.local.remove('tl_last_result');
+  pendingPick = null;
+  pendingUploadFile = null;
+  btnAnalyzeUpload.disabled = true;
   showState('empty');
 });
 
@@ -422,10 +433,57 @@ btnAnalyzeVideo.addEventListener('click', async () => {
     return;
   }
 
-  videoAnalysisText.textContent = text;
+  renderFactCheck(text);
   videoResultSource.textContent = pendingVideoUrl.startsWith('data:') ? 'Source: uploaded file' : `Source: ${truncate(pendingVideoUrl, 48)}`;
   setVideoState('result');
 });
+
+btnClearVideo.addEventListener('click', () => {
+  pendingVideoUrl = '';
+  videoUrlInput.value = '';
+  videoUrlInput.placeholder = 'https://…';
+  btnAnalyzeVideo.disabled = true;
+  setVideoState('empty');
+});
+
+// ── Fact-check renderer ───────────────────────────────────────────────────
+
+function renderFactCheck(text) {
+  // Detect overall verdict from text
+  const lower = text.toLowerCase();
+  let verdictLabel = null;
+  let verdictCls = null;
+
+  if (/\b(false|fabricated|fake|disinformation|misleading|inaccurate|debunked)\b/.test(lower)) {
+    verdictLabel = 'False / Misleading';
+    verdictCls = 'red';
+  } else if (/\b(unverified|unclear|disputed|insufficient|no evidence|cannot confirm|inconclusive|mixed)\b/.test(lower)) {
+    verdictLabel = 'Unverified';
+    verdictCls = 'yellow';
+  } else if (/\b(true|accurate|verified|authentic|correct|confirmed|genuine|real)\b/.test(lower)) {
+    verdictLabel = 'Likely Accurate';
+    verdictCls = 'green';
+  }
+
+  if (verdictLabel) {
+    videoVerdictBadge.textContent = verdictLabel;
+    videoVerdictBadge.className = `verdict-badge verdict-badge--${verdictCls}`;
+    videoVerdictBadge.hidden = false;
+  } else {
+    videoVerdictBadge.hidden = true;
+  }
+
+  // Render paragraphs
+  videoAnalysisBody.innerHTML = '';
+  const paras = text.split(/\n\s*\n/).filter(p => p.trim());
+  if (paras.length === 0) paras.push(text);
+  paras.forEach(para => {
+    const p = document.createElement('p');
+    p.className = 'factcheck-para';
+    p.textContent = para.trim();
+    videoAnalysisBody.appendChild(p);
+  });
+}
 
 // ── History ───────────────────────────────────────────────────────────────
 

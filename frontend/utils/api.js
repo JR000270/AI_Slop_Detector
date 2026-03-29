@@ -140,7 +140,7 @@ async function analyzeVideoContent(url, apiKey, endpoint = DEFAULT_ENDPOINT) {
 }
 
 /** Ping backend health endpoint. Returns true if reachable. */
-async function checkOpenClawConnection(endpoint = DEFAULT_ENDPOINT) {
+async function checkBackendConnection(endpoint = DEFAULT_ENDPOINT) {
   try {
     const res = await fetchWithTimeout(`${endpoint}/health`, { method: 'GET' }, 3000);
     return res.ok;
