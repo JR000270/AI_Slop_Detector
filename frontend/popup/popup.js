@@ -161,16 +161,16 @@ function showPreviewOnly({ url, type }) {
 }
 
 //calculating trustworthy of page 
-function calcDomainTrust(scores) {
+/*function calcDomainTrust(scores) {
   if (!scores.length) return null;
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
   if (avg < 30) return { rating: 'Trustworthy',   cls: 'green',  avg: Math.round(avg) };
   if (avg < 60) return { rating: 'Mixed Content',  cls: 'yellow', avg: Math.round(avg) };
   return        { rating: 'Untrustworthy',          cls: 'red',    avg: Math.round(avg) };
-}
+}*/
 
 //display function
-function showDomainTrust(trust) {
+/*function showDomainTrust(trust) {
   const el = $('domain-trust');
   if (!el || !trust) return;
   el.hidden = false;
@@ -179,7 +179,7 @@ function showDomainTrust(trust) {
     <strong class="gauge-label--${trust.cls}">${trust.rating}</strong>
     <span style="color:#888; font-size:11px">(avg ${trust.avg}% AI across page)</span>
   `;
-}
+}*/
 
 // ── Result rendering ──────────────────────────────────────────────────────
 
@@ -331,12 +331,12 @@ btnBatch.addEventListener('click', async () => {
   progressBar.style.width = '0%';
   progressLabel.textContent = 'Starting scan…';
 
-  const scores = [];
+  //const scores = [];
 
   // Listen for progress updates from background
   const onProgress = (message) => {
     if (message.action !== 'batchProgress') return;
-    if(message.score != null) scores.push(message.score);
+    //if(message.score != null) scores.push(message.score);
     const { done, total } = message;
     const pct = total ? Math.round((done / total) * 100) : 0;
     progressBar.style.width = pct + '%';
@@ -350,7 +350,7 @@ btnBatch.addEventListener('click', async () => {
     chrome.runtime.onMessage.removeListener(onProgress);
     btnBatch.disabled = false;
     progressLabel.textContent = 'Scan complete';
-    showDomainTrust(calcDomainTrust(scores))
+    //showDomainTrust(calcDomainTrust(scores))
     setTimeout(() => { batchProgress.hidden = true; }, 2500);
   };
 
