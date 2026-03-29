@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
-from routes import image, factcheck
+from routes import image, video
 
 app = FastAPI()
 app.include_router(image.router)
+app.include_router(video.router)
 app.include_router(factcheck.router)
 
 
