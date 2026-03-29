@@ -246,6 +246,15 @@ body {
   line-height: 1;
 }
 
+.gauge-sublabel {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted, #94a3b8);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
 .gauge-label {
   font-size: 11px;
   font-weight: 700;
@@ -263,6 +272,17 @@ body {
 .gauge-label--red {
   color: var(--red);
 }
+
+.gemini-confidence {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 4px 0 6px;
+  line-height: 1;
+}
+
+.gemini-confidence--green { color: var(--green); }
+.gemini-confidence--yellow { color: var(--yellow); }
+.gemini-confidence--red { color: var(--red); }
 
 /* ── Result preview ──────────────────────────────────────────────────────── */
 

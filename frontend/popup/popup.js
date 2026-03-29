@@ -26,8 +26,9 @@ const previewOnlyUrl   = $('preview-only-url');
 const stateResult      = $('state-result');
 const stateResultGemini = $('state-result-gemini');
 const imgGeminiPreview = $('img-gemini-preview');
-const imgGeminiBadge   = $('img-gemini-badge');
-const imgGeminiReason  = $('img-gemini-reason');
+const imgGeminiBadge      = $('img-gemini-badge');
+const imgGeminiConfidence = $('img-gemini-confidence');
+const imgGeminiReason     = $('img-gemini-reason');
 const imgGeminiSummary = $('img-gemini-summary');
 const imgRawWrap       = $('img-raw-wrap');
 const imgRawText       = $('img-raw-text');
@@ -678,7 +679,7 @@ function parseImageGeminiAnalysis(text) {
   };
 }
 
-function showImageGeminiResult({ analysis, url, previewUrl }) {
+function showImageGeminiResult({ analysis, aiPct, url, previewUrl }) {
   stopScanLoadingCycle();
 
   const parsed = parseImageGeminiAnalysis(analysis);
@@ -689,6 +690,15 @@ function showImageGeminiResult({ analysis, url, previewUrl }) {
     imgGeminiBadge.textContent = parsed.aiVerdict;
     imgGeminiBadge.className   = `verdict-badge verdict-badge--${aiCls}`;
     imgGeminiBadge.hidden      = false;
+    if (imgGeminiConfidence) {
+      if (aiPct !== null && aiPct !== undefined) {
+        imgGeminiConfidence.textContent = `${aiPct}% chance of AI`;
+        imgGeminiConfidence.className   = `gemini-confidence gemini-confidence--${aiCls}`;
+        imgGeminiConfidence.hidden      = false;
+      } else {
+        imgGeminiConfidence.hidden = true;
+      }
+    }
     imgGeminiReason.textContent = parsed.aiReason || '';
     if (parsed.summary) {
       imgGeminiSummary.textContent = parsed.summary;
@@ -698,6 +708,7 @@ function showImageGeminiResult({ analysis, url, previewUrl }) {
     }
   } else {
     imgGeminiBadge.hidden = true;
+    if (imgGeminiConfidence) imgGeminiConfidence.hidden = true;
     imgRawText.textContent = analysis || '(no response)';
     imgRawWrap.hidden = false;
   }
@@ -836,14 +847,15 @@ function showResult({ score, label, cls, url, type, source, summary }) {
     resultPreviewImg.alt = label || 'Scanned image';
   }
 
-  // Gauge arc
-  const offset = GAUGE_LEN * (1 - score / 100);
+  // Gauge arc — display AI probability (inverse of realness score)
+  const aiPct = 100 - score;
+  const offset = GAUGE_LEN * (1 - aiPct / 100);
   gaugeArc.style.strokeDashoffset = offset;
 
   const colors = { green: '#16A34A', yellow: '#D97706', red: '#DC2626' };
   gaugeArc.style.stroke = colors[cls] || '#8C5E4A';
 
-  gaugePct.textContent = score + '%';
+  gaugePct.textContent = aiPct + '%';
   gaugeLabel.textContent = label;
   gaugeLabel.className = `gauge-label gauge-label--${cls}`;
 
@@ -900,6 +912,7 @@ btnCopyImgGemini.addEventListener('click', () => {
     lines.push(imgRawText.textContent);
   } else {
     if (!imgGeminiBadge.hidden) lines.push(`AI Detection: ${imgGeminiBadge.textContent}`);
+    if (imgGeminiConfidence && !imgGeminiConfidence.hidden) lines.push(imgGeminiConfidence.textContent);
     if (imgGeminiReason.textContent) lines.push(imgGeminiReason.textContent);
     if (!imgGeminiSummary.hidden)    lines.push('', imgGeminiSummary.textContent);
   }
@@ -950,7 +963,7 @@ btnAnalyzeUpload.addEventListener('click', async () => {
   btnAnalyzeUpload.disabled = true;
 
   try {
-    let json;
+    let geminiJson, aiornotJson;
     let previewUrl = pendingUrl;
 
     if (hasFile) {
@@ -959,23 +972,46 @@ btnAnalyzeUpload.addEventListener('click', async () => {
         r.onload = () => resolve(r.result);
         r.readAsDataURL(pendingUploadFile);
       });
-      const form = new FormData();
-      form.append('file', pendingUploadFile, pendingUploadFile.name);
-      const res = await fetch(`${endpoint}/image/gemini/upload`, { method: 'POST', body: form });
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      json = await res.json();
+      const formGemini = new FormData();
+      formGemini.append('file', pendingUploadFile, pendingUploadFile.name);
+      const formAiornot = new FormData();
+      formAiornot.append('file', pendingUploadFile, pendingUploadFile.name);
+
+      const [geminiRes, aiornotRes] = await Promise.all([
+        fetch(`${endpoint}/image/gemini/upload`, { method: 'POST', body: formGemini }),
+        fetch(`${endpoint}/image/`, { method: 'POST', body: formAiornot }),
+      ]);
+      if (!geminiRes.ok) throw new Error(`Server error ${geminiRes.status}`);
+      geminiJson = await geminiRes.json();
+      aiornotJson = aiornotRes.ok ? await aiornotRes.json() : null;
     } else {
-      const res = await fetch(`${endpoint}/image/gemini/url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: pendingUrl }),
-      });
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      json = await res.json();
+      const [geminiRes, aiornotRes] = await Promise.all([
+        fetch(`${endpoint}/image/gemini/url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: pendingUrl }),
+        }),
+        fetch(`${endpoint}/image/url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: pendingUrl }),
+        }),
+      ]);
+      if (!geminiRes.ok) throw new Error(`Server error ${geminiRes.status}`);
+      geminiJson = await geminiRes.json();
+      aiornotJson = aiornotRes.ok ? await aiornotRes.json() : null;
+    }
+
+    // Extract AI percentage from AI-or-Not response (confidence is 0-1, higher = more AI)
+    let aiPct = null;
+    if (aiornotJson) {
+      const raw = aiornotJson.report?.ai_generated?.ai?.confidence ?? aiornotJson.score ?? null;
+      if (raw !== null) aiPct = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
     }
 
     showImageGeminiResult({
-      analysis: json.analysis,
+      analysis: geminiJson.analysis,
+      aiPct,
       url: hasFile ? pendingUploadFile.name : pendingUrl,
       previewUrl,
     });

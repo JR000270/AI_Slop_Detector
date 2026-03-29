@@ -133,16 +133,24 @@ async def analyze_from_upload(file):
 
 async def analyze_from_url(url: str):
     async with httpx.AsyncClient(follow_redirects=True) as client:
-        try:
-            image_response = await client.get(url)
-            image_response.raise_for_status()
-        except httpx.HTTPStatusError:
-            raise HTTPException(status_code=400, detail="Could not fetch image from URL")
-        except httpx.RequestError:
-            raise HTTPException(status_code=400, detail="Invalid URL or network error")
+        if url.startswith("data:"):
+            try:
+                _, b64data = url.split(",", 1)
+                image_bytes = base64.b64decode(b64data)
+            except Exception:
+                raise HTTPException(status_code=400, detail="Invalid data URI")
+        else:
+            try:
+                image_response = await client.get(url)
+                image_response.raise_for_status()
+            except httpx.HTTPStatusError:
+                raise HTTPException(status_code=400, detail="Could not fetch image from URL")
+            except httpx.RequestError:
+                raise HTTPException(status_code=400, detail="Invalid URL or network error")
+            image_bytes = image_response.content
 
         try:
-            image = Image.open(io.BytesIO(image_response.content))
+            image = Image.open(io.BytesIO(image_bytes))
             buffer = io.BytesIO()
             image.convert("RGB").save(buffer, format="JPEG")
             buffer.seek(0)
