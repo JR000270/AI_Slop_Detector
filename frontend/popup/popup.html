@@ -141,6 +141,50 @@
       </div>
     </div>
 
+    <!-- ── Image Gemini Result state ──────────────────────────────────────── -->
+    <div id="state-result-gemini" class="state" hidden>
+      <!-- Compact thumbnail -->
+      <div class="sc-thumb-wrap">
+        <img id="img-gemini-preview" class="sc-thumb" alt="Scanned image" hidden />
+      </div>
+      <!-- AI Detection card -->
+      <div class="vcard sc-result-card">
+        <div class="vcard__header">
+          <div class="vcard__icon vcard__icon--ai" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <circle cx="6.5" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.4" />
+              <path d="M1 12c0-3.3 2.5-5.5 5.5-5.5S12 8.7 12 12"
+                stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+            </svg>
+          </div>
+          <span class="vcard__title">AI Detection</span>
+          <span id="img-gemini-badge" class="verdict-badge" hidden></span>
+        </div>
+        <div class="vcard__divider"></div>
+        <p id="img-gemini-reason" class="vcard__body-text"></p>
+        <p id="img-gemini-summary" class="vcard__body-text" style="margin-top:6px;color:var(--text-muted,#64748b)" hidden></p>
+      </div>
+      <!-- Raw fallback (shown only when parsing fails) -->
+      <div id="img-raw-wrap" class="vraw" hidden>
+        <p class="vraw__label">Analysis</p>
+        <pre id="img-raw-text" class="vraw__text"></pre>
+      </div>
+      <!-- Footer -->
+      <div class="vid-result-footer">
+        <p id="img-gemini-source" class="result-url" style="margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></p>
+        <button id="btn-copy-img-gemini" class="btn btn--ghost btn--sm" title="Copy result">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <rect x="4" y="4" width="7" height="7" rx="1.2"
+              stroke="currentColor" stroke-width="1.3" />
+            <path d="M3 8H2a1 1 0 01-1-1V2a1 1 0 011-1h5a1 1 0 011 1v1"
+              stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+          </svg>
+          Copy
+        </button>
+        <button id="btn-clear-img-gemini" class="btn btn--ghost btn--sm btn--danger">Clear</button>
+      </div>
+    </div>
+
     <hr class="divider" />
 
     <!-- ── Action buttons ───────────────────────────────────────────────── -->

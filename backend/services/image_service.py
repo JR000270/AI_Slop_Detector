@@ -102,6 +102,7 @@ async def analyze_image(image_bytes: bytes, mime_type: str) -> dict:
         raise HTTPException(status_code=500, detail="Gemini returned malformed JSON")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gemini error: {str(e)}")
+import base64
 import httpx
 import io
 from PIL import Image
@@ -165,23 +166,59 @@ def _get_gemini_client():
     return _gemini_client
 
 # Add these two new functions
+_IMAGE_GEMINI_PROMPT = """You are an AI image detection expert. Analyze this image carefully.
+
+Return your analysis in this exact plain-text format (no markdown, no code blocks):
+
+AI DETECTION: <Yes / No / Uncertain> — <one concise sentence verdict>
+
+Summary:
+<2-3 sentences describing the specific visual signals that support your verdict, such as unnatural textures, perfect symmetry, distorted anatomy, overly smooth backgrounds, hallucinated text, or other AI artifacts>
+"""
+
+
 async def analyze_image_with_gemini(image_input) -> str:
     if isinstance(image_input, str):
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(image_input)
-            resp.raise_for_status()
-        image = Image.open(io.BytesIO(resp.content))
+        if image_input.startswith("data:"):
+            # Inline base64 data URI — decode directly without fetching
+            try:
+                header, b64data = image_input.split(",", 1)
+                image_bytes = base64.b64decode(b64data)
+            except Exception:
+                raise HTTPException(status_code=400, detail="Invalid data URI")
+        else:
+            try:
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Referer": "https://www.google.com/",
+                }
+                async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                    resp = await client.get(image_input, headers=headers)
+                    resp.raise_for_status()
+                image_bytes = resp.content
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Could not fetch image: {e}")
+        try:
+            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except Exception:
+            raise HTTPException(status_code=400, detail="URL does not point to a valid image")
     else:
-        image = image_input
+        try:
+            image = image_input.convert("RGB")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Could not process uploaded image")
 
-    response = _get_gemini_client().models.generate_content(
-        model="gemini-2.5-flash",
-        contents=[
-            "In 30 words or less explain if this image is AI generated or not and why.",
-            image
-        ]
-    )
-    return response.text
+    try:
+        response = await asyncio.to_thread(
+            _get_gemini_client().models.generate_content,
+            model="gemini-2.5-flash",
+            contents=[_IMAGE_GEMINI_PROMPT, image],
+        )
+        return response.text
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gemini error: {e}")
 
 async def analyze_youtube_with_gemini(url: str) -> str:
     response = _get_gemini_client().models.generate_content(

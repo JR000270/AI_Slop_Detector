@@ -19,6 +19,16 @@ const previewOnlyImg   = $('preview-only-img');
 const previewOnlyVid   = $('preview-only-vid');
 const previewOnlyUrl   = $('preview-only-url');
 const stateResult      = $('state-result');
+const stateResultGemini = $('state-result-gemini');
+const imgGeminiPreview = $('img-gemini-preview');
+const imgGeminiBadge   = $('img-gemini-badge');
+const imgGeminiReason  = $('img-gemini-reason');
+const imgGeminiSummary = $('img-gemini-summary');
+const imgRawWrap       = $('img-raw-wrap');
+const imgRawText       = $('img-raw-text');
+const imgGeminiSource  = $('img-gemini-source');
+const btnCopyImgGemini = $('btn-copy-img-gemini');
+const btnClearImgGemini = $('btn-clear-img-gemini');
 const gaugeArc         = $('gauge-arc');
 const gaugePct         = $('gauge-pct');
 const gaugeLabel       = $('gauge-label');
@@ -284,6 +294,55 @@ function stopScanLoadingCycle() {
 
 // ── Render result ─────────────────────────────────────────────────────────
 
+// ── Image Gemini result ───────────────────────────────────────────────────
+
+function parseImageGeminiAnalysis(text) {
+  if (!text || typeof text !== 'string') return null;
+  const aiMatch = text.match(/AI\s+DETECTION\s*:\s*(Yes|No|Uncertain)\s*[—–-]+\s*(.+)/i);
+  if (!aiMatch) return null;
+  const summaryMatch = text.match(/^Summary\s*:\s*([\s\S]+?)(?=\n\n|$)/im);
+  return {
+    aiVerdict: aiMatch[1].trim(),
+    aiReason:  aiMatch[2].trim(),
+    summary:   summaryMatch ? summaryMatch[1].trim() : null,
+  };
+}
+
+function showImageGeminiResult({ analysis, url, previewUrl }) {
+  stopScanLoadingCycle();
+
+  const parsed = parseImageGeminiAnalysis(analysis);
+
+  if (parsed) {
+    imgRawWrap.hidden = true;
+    const aiCls = aiVerdictCls(parsed.aiVerdict);
+    imgGeminiBadge.textContent = parsed.aiVerdict;
+    imgGeminiBadge.className   = `verdict-badge verdict-badge--${aiCls}`;
+    imgGeminiBadge.hidden      = false;
+    imgGeminiReason.textContent = parsed.aiReason || '';
+    if (parsed.summary) {
+      imgGeminiSummary.textContent = parsed.summary;
+      imgGeminiSummary.hidden = false;
+    } else {
+      imgGeminiSummary.hidden = true;
+    }
+  } else {
+    imgGeminiBadge.hidden = true;
+    imgRawText.textContent = analysis || '(no response)';
+    imgRawWrap.hidden = false;
+  }
+
+  if (previewUrl) {
+    imgGeminiPreview.src = previewUrl;
+    imgGeminiPreview.hidden = false;
+  } else {
+    imgGeminiPreview.hidden = true;
+  }
+
+  imgGeminiSource.textContent = url ? truncate(url, 48) : '';
+  showState('result-gemini');
+}
+
 function showVideoGeminiResult({ analysis, url }) {
   chrome.storage.local.remove('tl_video_result');
   stopVideoLoadingCycle();
@@ -388,8 +447,9 @@ function showPreviewOnly({ url, type }) {
 function showState(name) {
   stateEmpty.hidden = name !== 'empty';
   stateLoading.hidden = name !== 'loading';
-  statePreview.hidden = name !== 'preview'; // TODO: remove when scanning is implemented
+  statePreview.hidden = name !== 'preview';
   stateResult.hidden = name !== 'result';
+  stateResultGemini.hidden = name !== 'result-gemini';
 }
 
 function showResult({ score, label, cls, url, type, source, summary }) {
@@ -459,6 +519,29 @@ btnCopyScan.addEventListener('click', () => {
   }).catch(() => { /* clipboard permission denied — silent */ });
 });
 
+btnClearImgGemini.addEventListener('click', () => {
+  pendingUploadFile = null;
+  showState('empty');
+});
+
+btnCopyImgGemini.addEventListener('click', () => {
+  const lines = [];
+  if (!imgRawWrap.hidden) {
+    lines.push(imgRawText.textContent);
+  } else {
+    if (!imgGeminiBadge.hidden) lines.push(`AI Detection: ${imgGeminiBadge.textContent}`);
+    if (imgGeminiReason.textContent) lines.push(imgGeminiReason.textContent);
+    if (!imgGeminiSummary.hidden)    lines.push('', imgGeminiSummary.textContent);
+  }
+  if (imgGeminiSource.textContent) lines.push('', imgGeminiSource.textContent);
+
+  navigator.clipboard.writeText(lines.join('\n').trim()).then(() => {
+    const orig = btnCopyImgGemini.innerHTML;
+    btnCopyImgGemini.textContent = 'Copied!';
+    setTimeout(() => { btnCopyImgGemini.innerHTML = orig; }, 1800);
+  }).catch(() => { /* clipboard permission denied — silent */ });
+});
+
 // ── Upload from device ────────────────────────────────────────────────────
 
 let pendingUploadFile = null; // File object held for the Analyze button
@@ -498,15 +581,21 @@ btnAnalyzeUpload.addEventListener('click', async () => {
 
   try {
     let json;
+    let previewUrl = pendingUrl;
 
     if (hasFile) {
+      previewUrl = await new Promise(resolve => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.readAsDataURL(pendingUploadFile);
+      });
       const form = new FormData();
       form.append('file', pendingUploadFile, pendingUploadFile.name);
-      const res = await fetch(`${endpoint}/image/`, { method: 'POST', body: form });
+      const res = await fetch(`${endpoint}/image/gemini/upload`, { method: 'POST', body: form });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       json = await res.json();
     } else {
-      const res = await fetch(`${endpoint}/image/url`, {
+      const res = await fetch(`${endpoint}/image/gemini/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: pendingUrl }),
@@ -515,30 +604,11 @@ btnAnalyzeUpload.addEventListener('click', async () => {
       json = await res.json();
     }
 
-    const raw = json.report?.ai_generated?.ai?.confidence ?? json.score ?? json.ai_probability ?? json.result?.score ?? 0;
-    const aiScore = Math.round(Math.min(100, Math.max(0, raw * (raw <= 1 ? 100 : 1))));
-    const score = 100 - aiScore;
-    const { label, cls } = score > 60
-      ? { label: 'Likely Real', cls: 'green' }
-      : score > 30
-        ? { label: 'Uncertain', cls: 'yellow' }
-        : { label: 'Likely AI-Generated', cls: 'red' };
-
-    let previewUrl = pendingUrl;
-    if (hasFile) {
-      previewUrl = await new Promise(resolve => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result);
-        r.readAsDataURL(pendingUploadFile);
-      });
-    }
-
-    const type = hasFile
-      ? (pendingUploadFile.type.startsWith('video/') ? 'video' : 'image')
-      : 'image';
-
-    stopScanLoadingCycle();
-    showResult({ score, label, cls, url: previewUrl, type, source: 'backend' });
+    showImageGeminiResult({
+      analysis: json.analysis,
+      url: hasFile ? pendingUploadFile.name : pendingUrl,
+      previewUrl,
+    });
     pendingUploadFile = null;
   } catch (err) {
     stopScanLoadingCycle();
